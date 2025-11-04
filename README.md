@@ -25,6 +25,7 @@ Esta aplicação permite conectar-se à Conta Azul via OAuth2, buscar entidades 
 ---
 
 ## 🧱 Estrutura do Projeto  
+```bash
 integrador-contaazul/
 │
 ├── src/
@@ -49,6 +50,7 @@ integrador-contaazul/
 ├── .env ← variáveis de ambiente
 ├── server.js ← ponto de entrada
 └── package.json
+```
 
 
 ---
@@ -56,7 +58,7 @@ integrador-contaazul/
 ## 🧑‍💻 Como Rodar Localmente  
 1. Clone o repositório  
    ```bash
-   git clone https://github.com/SEU_USUARIO/integrador-contaazul.git
+   git clone https://github.com/aledepaulaaa/integrador-contaazul.git
    cd integrador-contaazul
 
 
@@ -65,18 +67,20 @@ integrador-contaazul/
 npm install
 
 3. Copie o .env.example para .env e configure:
-
+```bash
 PORT=7575  
 CLIENT_ID=…  
 CLIENT_SECRET=…  
 REDIRECT_URI=http://localhost:7575/auth/callback  
 AUTH_AUTHORIZE_URL=https://auth.contaazul.com/oauth2/authorize  
 AUTH_TOKEN_URL=https://auth.contaazul.com/oauth2/token  
-API_BASE_URL=https://api.contaazul.com  
+API_BASE_URL=https://api.contaazul.com
+```
 
 4. Inicie o servidor em modo de desenvolvimento
-
+```bash
 npm run dev
+```
 
 5. Acesse no navegador: http://localhost:7575
 
@@ -131,5 +135,6 @@ OAuth2 na Conta Azul: https://developers.contaazul.com/quick-start
 Pacote express-ejs-layouts: https://www.npmjs.com/package/express-ejs-layouts
 
 📝 Licença
+
 
 MIT © 2025 Alexandre
