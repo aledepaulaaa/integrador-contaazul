@@ -1,0 +1,30 @@
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f1724 0%, #10243b 100%);
+  font-family: 'Poppins', sans-serif;
+  color: #fff;
+}
+
+
+.glass-card {
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+
+.btn-glass {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #fff;
+}
+
+
+#output pre {
+  max-height: 300px;
+  overflow: auto;
+  background: rgba(0,0,0,0.4);
+  padding: 12px;
+  border-radius: 8px;
+}

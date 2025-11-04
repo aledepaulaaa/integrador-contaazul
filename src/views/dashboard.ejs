@@ -1,0 +1,65 @@
+<!-- /src/views/dashboard.ejs -->
+    <div class="glass-card p-4">
+        <h1 class="mb-4">Bem-vindo ao Integrador Conta Azul</h1>
+
+        <!-- Filtros de data e entidade -->
+        <div class="mb-4">
+            <div class="row g-2">
+                <div class="col-12 col-md-4">
+                    <input type="date" id="filter-startDate" class="form-control" placeholder="Data início">
+                </div>
+                <div class="col-12 col-md-4">
+                    <input type="date" id="filter-endDate" class="form-control" placeholder="Data fim">
+                </div>
+                <div class="col-12 col-md-4">
+                    <select id="filter-entity" class="form-select">
+                        <option value="vendas">Vendas</option>
+                        <option value="pessoas">Pessoas</option>
+                        <option value="produtos">Produtos</option>
+                        <option value="notas">Notas Fiscais</option>
+                        <option value="cobrancas">Cobranças</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-2">
+                <button id="btn-filtrar" class="btn btn-glass">Filtrar</button>
+                <button id="btn-mostrar-historico" class="btn btn-glass">Mostrar Histórico</button>
+            </div>
+        </div>
+
+        <div id="cards" class="row">
+            <div class="col-6 col-md-3 mb-3">
+                <div class="card glass-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Vendas</h5>
+                        <p class="card-text">Busca e salva vendas.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 mb-3">
+                <div class="card glass-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Pessoas</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 mb-3">
+                <div class="card glass-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Produtos</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 mb-3">
+                <div class="card glass-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Notas / Cobranças</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="output" class="mt-4">
+            <!-- Resultado da chamada será mostrado aqui -->
+        </div>
+    </div>
