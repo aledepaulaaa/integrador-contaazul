@@ -58,7 +58,7 @@ integrador-contaazul/
 ## 🧑‍💻 Como Rodar Localmente  
 1. Clone o repositório  
    ```bash
-   git clone https://github.com/SEU_USUARIO/integrador-contaazul.git
+   git clone https://github.com/aledepaulaaa/integrador-contaazul.git
    cd integrador-contaazul
 
 
@@ -136,3 +136,4 @@ Pacote express-ejs-layouts: https://www.npmjs.com/package/express-ejs-layouts
 
 
 MIT © 2025 Alexandre
+
