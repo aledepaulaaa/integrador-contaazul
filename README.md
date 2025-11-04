@@ -1,6 +1,6 @@
 # 🚀 Integrador Conta Azul  
-> Aplicação simples para integração com a API da :contentReference[oaicite:0]{index=0} — filtragem, busca e persistência local de dados (sem banco, usando JSON).  
-> Desenvolvido por **Alexandre**.
+> Aplicação simples para integração com a API da Conta Azul — filtragem, busca e persistência local de dados (sem banco, usando JSON).  
+> Desenvolvido por **Alexandre de Paula**.
 
 ---
 
@@ -63,8 +63,9 @@ integrador-contaazul/
 
 
 2. Instale dependências
-
+```bash
 npm install
+```
 
 3. Copie o .env.example para .env e configure:
 ```bash
