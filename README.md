@@ -25,6 +25,7 @@ Esta aplicação permite conectar-se à Conta Azul via OAuth2, buscar entidades 
 ---
 
 ## 🧱 Estrutura do Projeto  
+```bash
 integrador-contaazul/
 │
 ├── src/
@@ -49,6 +50,7 @@ integrador-contaazul/
 ├── .env ← variáveis de ambiente
 ├── server.js ← ponto de entrada
 └── package.json
+```
 
 
 ---
@@ -131,5 +133,6 @@ OAuth2 na Conta Azul: https://developers.contaazul.com/quick-start
 Pacote express-ejs-layouts: https://www.npmjs.com/package/express-ejs-layouts
 
 📝 Licença
+
 
 MIT © 2025 Alexandre
