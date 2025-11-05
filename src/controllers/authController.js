@@ -62,9 +62,15 @@ module.exports = {
             return res.redirect('https://integrador-contaazul.onrender.com');
 
         } catch (err) {
-            // Log aprimorado para vermos o erro exato da API
-            console.error('Erro detalhado no callback:', err?.response?.data || err.message);
-            return res.status(500).send('Erro no callback de OAuth');
+            // Log aprimorado para o servidor
+            console.error('--- ERRO DETALHADO NO CALLBACK ---');
+            console.error('Status:', err?.response?.status);
+            console.error('Data:', err?.response?.data);
+            console.error('------------------------------------');
+
+            // Envia o erro detalhado para o navegador para depuração
+            const detailedError = err?.response?.data ? JSON.stringify(err.response.data) : err.message;
+            return res.status(500).send(`<h1>Erro no callback de OAuth</h1><p>Resposta da API:</p><pre>${detailedError}</pre>`);
         }
     },
 
