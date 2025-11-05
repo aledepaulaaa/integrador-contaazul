@@ -29,30 +29,41 @@ module.exports = {
         if (error) return res.status(400).send(`Erro authorization: ${error}`);
         if (!code) return res.status(400).send('Code não recebido');
 
-
         try {
+            // --- INÍCIO DA ALTERAÇÃO ---
+
+            // 1. Crie o cabeçalho de autorização Basic
+            const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
+
+            // 2. Monte o payload SEM as credenciais
             const payload = qs.stringify({
                 grant_type: 'authorization_code',
                 code,
-                redirect_uri: REDIRECT_URI,
-                client_id: CLIENT_ID,
-                client_secret: CLIENT_SECRET
+                redirect_uri: REDIRECT_URI
             });
 
-
+            // 3. Faça a requisição com o header de autorização
             const response = await axios.post(TOKEN_URL, payload, {
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': `Basic ${credentials}`
+                }
             });
 
+            // --- FIM DA ALTERAÇÃO ---
 
-            // Salva sessão localmente
+            // Salva sessão localmente (isso permanece igual)
             await fs.ensureFile(SESSION_FILE);
             await fs.writeJson(SESSION_FILE, response.data, { spaces: 2 });
 
+            // Redireciona para o dashboard em produção. Para testes locais, pode ser para o localhost.
+            // Como o callback é no servidor, o ideal é renderizar uma página de sucesso
+            // ou redirecionar para a página principal da sua aplicação no Render.
+            return res.redirect('https://integrador-contaazul.onrender.com');
 
-            return res.render('dashboard', { title: 'Integrador Conta Azul' });
         } catch (err) {
-            console.error(err?.response?.data || err.message);
+            // Log aprimorado para vermos o erro exato da API
+            console.error('Erro detalhado no callback:', err?.response?.data || err.message);
             return res.status(500).send('Erro no callback de OAuth');
         }
     },
