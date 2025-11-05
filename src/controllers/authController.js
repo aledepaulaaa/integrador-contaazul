@@ -52,9 +52,12 @@ module.exports = {
 
             // --- FIM DA ALTERAÇÃO ---
 
+            const sessionData = response.data;
+            sessionData.created_at = Date.now() / 1000;
+
             // Salva sessão localmente (isso permanece igual)
             await fs.ensureFile(SESSION_FILE);
-            await fs.writeJson(SESSION_FILE, response.data, { spaces: 2 });
+            await fs.writeJson(SESSION_FILE, sessionData, { spaces: 2 });
 
             // Redireciona para o dashboard em produção. Para testes locais, pode ser para o localhost.
             // Como o callback é no servidor, o ideal é renderizar uma página de sucesso

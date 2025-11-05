@@ -22,24 +22,41 @@ async function saveSession(session) {
 }
 
 async function refreshTokenIfNeeded(session) {
+    // A lógica para verificar a expiração do token permanece a mesma
     const now = Date.now() / 1000;
-    // Assume session.expires_at (timestamp in seconds) stored
-    if (!session.expires_at || now >= session.expires_at - 60) {
-        // Token expired or about to expire: refresh
+    // expires_in é retornado pela API em segundos
+    const expiresAt = session.created_at + session.expires_in;
+
+    // Renova se estiver a 60 segundos de expirar
+    if (now >= expiresAt - 60) {
+        console.log('Token expirado ou prestes a expirar. Renovando...');
+
+        // --- INÍCIO DA ALTERAÇÃO ---
+
+        // 1. Crie o cabeçalho de autorização Basic
+        const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
+
+        // 2. Monte o payload SEM as credenciais
         const payload = qs.stringify({
             grant_type: 'refresh_token',
-            refresh_token: session.refresh_token,
-            client_id: CLIENT_ID,
-            client_secret: CLIENT_SECRET,
-            redirect_uri: REDIRECT_URI
+            refresh_token: session.refresh_token
         });
+
+        // 3. Faça a requisição com o header de autorização
         const response = await axios.post(TOKEN_URL, payload, {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            headers: {
+                'Content-Type': 'application/x-form-urlencoded',
+                'Authorization': `Basic ${credentials}`
+            }
         });
+
+        // --- FIM DA ALTERAÇÃO ---
+
         const newSession = response.data;
-        // calculate expiry timestamp
-        newSession.expires_at = now + (newSession.expires_in || 3600);
+        // Salva o timestamp de quando o token foi criado para calcular a expiração futura
+        newSession.created_at = Date.now() / 1000;
         await saveSession(newSession);
+        console.log('Token renovado com sucesso.');
         return newSession;
     }
     return session;
