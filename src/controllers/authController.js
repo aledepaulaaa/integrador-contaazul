@@ -4,9 +4,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const qs = require('querystring');
 
-
 const SESSION_FILE = path.join(__dirname, '..', '..', 'data', 'auth', 'session.json');
-
 
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
@@ -14,12 +12,11 @@ const REDIRECT_URI = process.env.REDIRECT_URI;
 const AUTHORIZE_URL = process.env.AUTH_AUTHORIZE_URL || 'https://auth.contaazul.com/oauth2/authorize';
 const TOKEN_URL = process.env.AUTH_TOKEN_URL || 'https://auth.contaazul.com/oauth2/token';
 
-
 module.exports = {
     connect: (req, res) => {
         // Monta a URL de autorização
         const state = Date.now();
-        const scope = 'sales';
+        const scope = 'openid+profile+aws.cognito.signin.user.admin';
         const url = `${AUTHORIZE_URL}?response_type=code&client_id=${encodeURIComponent(CLIENT_ID)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}&scope=${encodeURIComponent(scope)}`;
 
         console.log('Redirecting to:', url);
