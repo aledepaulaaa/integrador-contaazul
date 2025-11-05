@@ -16,7 +16,7 @@ module.exports = {
     connect: (req, res) => {
         // Monta a URL de autorização
         const state = Date.now();
-        const scope = 'sales contacts product';
+        const scope = 'sales+contacts+product';
         const url = `${AUTHORIZE_URL}?response_type=code&client_id=${encodeURIComponent(CLIENT_ID)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}&scope=${encodeURIComponent(scope)}`;
 
         console.log('Redirecting to:', url);
