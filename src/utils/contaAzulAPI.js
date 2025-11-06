@@ -76,6 +76,7 @@ async function ensureAuthHeaders() {
 async function get(pathUrl, opts = {}) {
     const headers = await ensureAuthHeaders();
     const url = `${API_BASE}${pathUrl}`;
+    console.log("URL :", url)
     const response = await axios.get(url, { headers, ...opts });
     return response.data;
 }

@@ -9,6 +9,7 @@ module.exports = {
             const params = req.query;
             // Exemplo de endpoint - pode precisar ajustar à doc oficial
             const result = await contaAzul.get('/venda/busca', { params });
+            console.log("Chamando API vendas: ", result)
 
             // salva o resultado localmente
             const saved = await jsonManager.save('vendas', result);
