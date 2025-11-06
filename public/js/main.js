@@ -1,23 +1,16 @@
 // ARQUIVO: /public/js/main.js
-
 document.addEventListener('DOMContentLoaded', () => {
     // Helper para selecionar elementos
     const $ = (s) => document.querySelector(s);
 
-    // Variáveis de estado para gerenciar os dados e a paginação
+    // Armazena os dados formatados para uso nas funções de exportação
     let formattedData = [];
-    let currentPage = 1;
-    let totalItems = 0;
-    const itemsPerPage = 100; // Define o máximo de itens por página
+    // Armazena a instância do DataTables para poder destruí-la e recriá-la
+    let dataTableInstance = null;
 
     // --- FUNÇÕES DE FORMATAÇÃO E TRANSFORMAÇÃO DE DADOS ---
+    // (Estas funções permanecem as mesmas, pois são essenciais para traduzir os dados da API)
 
-    /**
-     * Formata data/hora do formato ISO para o padrão brasileiro.
-     * @param {string} isoString - A data no formato ISO.
-     * @param {boolean} includeTime - Se deve incluir a hora.
-     * @returns {string} - A data formatada.
-     */
     function formatDateTime(isoString, includeTime = false) {
         if (!isoString) return 'N/A';
         const date = new Date(isoString);
@@ -29,13 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return formatted;
     }
 
-    /**
-     * Cria um Accordion do Bootstrap para exibir dados complexos.
-     * @param {string} id - Um ID único para o accordion.
-     * @param {string} buttonText - O texto a ser exibido no botão do accordion.
-     * @param {Object} details - Um objeto com os detalhes a serem mostrados no corpo do accordion.
-     * @returns {string} - O HTML do accordion.
-     */
     function createAccordion(id, buttonText, details) {
         if (!buttonText || buttonText === 'undefined, undefined') buttonText = 'Ver Detalhes';
         const detailsHtml = Object.entries(details)
@@ -58,47 +44,32 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    /** Formata dados de VENDAS */
     function formatSalesData(rawData) {
-        return rawData.map(venda => {
-            const clienteDetails = { Nome: venda.cliente?.nome, Email: venda.cliente?.email };
-            return {
-                'Data': formatDateTime(venda.data),
-                'Criado em': formatDateTime(venda.criado_em, true),
-                'Alterado em': formatDateTime(venda.data_alteracao, true),
-                'Tipo': venda.tipo === 'SALE' ? 'Venda' : venda.tipo,
-                'Item': venda.itens === 'PRODUCT' ? 'Produto' : venda.itens,
-                'Pago': venda.condicao_pagamento ? 'Sim' : 'Não',
-                'Total': (venda.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-                'Cliente': createAccordion(venda.id, venda.cliente?.nome || 'N/A', clienteDetails),
-                'Situação': venda.situacao?.descricao || 'N/A'
-            };
-        });
+        return rawData.map(venda => ({
+            'Data': formatDateTime(venda.data),
+            'Criado em': formatDateTime(venda.criado_em, true),
+            'Alterado em': formatDateTime(venda.data_alteracao, true),
+            'Tipo': venda.tipo === 'SALE' ? 'Venda' : venda.tipo,
+            'Item': venda.itens === 'PRODUCT' ? 'Produto' : venda.itens,
+            'Pago': venda.condicao_pagamento ? 'Sim' : 'Não',
+            'Total': (venda.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+            'Cliente': createAccordion(venda.id, venda.cliente?.nome || 'N/A', { Nome: venda.cliente?.nome, Email: venda.cliente?.email }),
+            'Situação': venda.situacao?.descricao || 'N/A'
+        }));
     }
 
-    /** Formata dados de PESSOAS */
     function formatPeopleData(rawData) {
-        return rawData.map(pessoa => {
-            const endereco = pessoa.endereco || {};
-            const enderecoDetails = {
-                Logradouro: `${endereco.logradouro}, ${endereco.numero}`,
-                Bairro: endereco.bairro,
-                Cidade: `${endereco.cidade} - ${endereco.estado}`,
-                CEP: endereco.cep
-            };
-            return {
-                'Nome': pessoa.nome,
-                'Email': pessoa.email,
-                'Telefone': pessoa.telefone,
-                'Tipo': pessoa.tipo_pessoa === 'FISICA' ? 'Física' : 'Jurídica',
-                'Perfis': pessoa.perfis ? pessoa.perfis.join(', ') : 'N/A',
-                'Endereço': createAccordion(pessoa.id, `${endereco.logradouro}, ${endereco.numero}`, enderecoDetails),
-                'Ativo': pessoa.ativo ? 'Sim' : 'Não'
-            };
-        });
+        return rawData.map(pessoa => ({
+            'Nome': pessoa.nome,
+            'Email': pessoa.email,
+            'Telefone': pessoa.telefone,
+            'Tipo': pessoa.tipo_pessoa === 'FISICA' ? 'Física' : 'Jurídica',
+            'Perfis': pessoa.perfis ? pessoa.perfis.join(', ') : 'N/A',
+            'Endereço': createAccordion(pessoa.id, `${pessoa.endereco?.logradouro}, ${pessoa.endereco?.numero}`, { Logradouro: `${pessoa.endereco?.logradouro}, ${pessoa.endereco?.numero}`, Bairro: pessoa.endereco?.bairro, Cidade: `${pessoa.endereco?.cidade} - ${pessoa.endereco?.estado}`, CEP: pessoa.endereco?.cep }),
+            'Ativo': pessoa.ativo ? 'Sim' : 'Não'
+        }));
     }
 
-    /** Formata dados de PRODUTOS */
     function formatProductsData(rawData) {
         return rawData.map(produto => ({
             'Código': produto.codigo,
@@ -112,81 +83,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
     }
 
-    // --- LÓGICA DE ORDENAÇÃO DA TABELA ---
-    function sortTableByColumn(headerCell) {
-        const table = headerCell.closest('table');
-        const columnIndex = Array.from(headerCell.parentNode.children).indexOf(headerCell);
-        const isAscending = headerCell.classList.contains('sort-asc');
-        const sortOrder = isAscending ? -1 : 1;
+    // --- NOVA FUNÇÃO CENTRAL COM DATATABLES ---
 
-        const rows = Array.from(table.querySelectorAll('tbody tr'));
+    /**
+     * Inicializa ou atualiza a tabela com a biblioteca DataTables.
+     * @param {Array<Object>} data - Os dados formatados a serem exibidos.
+     */
+    function initializeDataTable(data) {
+        const tableElement = $('#interactive-table');
+        const entityName = $('#filter-entity').selectedOptions[0].text;
 
-        rows.sort((rowA, rowB) => {
-            const cellA = rowA.children[columnIndex].textContent.trim().toLowerCase();
-            const cellB = rowB.children[columnIndex].textContent.trim().toLowerCase();
-            if (cellA < cellB) return -1 * sortOrder;
-            if (cellA > cellB) return 1 * sortOrder;
-            return 0;
-        });
-
-        table.querySelector('tbody').append(...rows);
-
-        table.querySelectorAll('th').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
-        headerCell.classList.toggle('sort-asc', !isAscending);
-        headerCell.classList.toggle('sort-desc', isAscending);
-    }
-
-    // --- FUNÇÕES DE RENDERIZAÇÃO (Atualizadas) ---
-
-    function renderTable(data, entityName) {
-        const container = $('#table-responsive-container');
         if (!data || data.length === 0) {
-            container.innerHTML = `<p class="text-center p-3">Nenhum dado de "${entityName}" encontrado para os filtros selecionados.</p>`;
+            $('#data-container').style.display = 'none';
+            $('#output').innerHTML = `<p class="text-center p-3">Nenhum dado de "${entityName}" encontrado para os filtros selecionados.</p>`;
             return;
         }
-        const headers = Object.keys(data[0]);
-        const headerHtml = `<thead><tr>${headers.map(h => `<th class="sortable-header" style="cursor: pointer;">${h} ↕️</th>`).join('')}</tr></thead>`;
-        const bodyHtml = `<tbody>${data.map(row => `<tr>${headers.map(header => `<td>${row[header]}</td>`).join('')}</tr>`).join('')}</tbody>`;
-        container.innerHTML = `<table class="table table-dark table-hover data-table">${headerHtml}${bodyHtml}</table>`;
 
-        container.querySelectorAll('.sortable-header').forEach(header => {
-            header.addEventListener('click', () => sortTableByColumn(header));
-        });
-    }
+        const columns = Object.keys(data[0]).map(header => ({
+            data: header,
+            title: header
+        }));
 
-    function renderPagination() {
-        const container = $('#pagination-container');
-        const totalPages = Math.ceil(totalItems / itemsPerPage);
-        container.innerHTML = '';
-
-        if (totalPages <= 1) return;
-
-        let paginationHtml = '<ul class="pagination">';
-        paginationHtml += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage - 1}">Anterior</a></li>`;
-        for (let i = 1; i <= totalPages; i++) {
-            paginationHtml += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+        // Destrói a instância anterior da tabela para evitar conflitos
+        if (dataTableInstance) {
+            dataTableInstance.destroy();
+            tableElement.innerHTML = ''; // Limpa a tabela
         }
-        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage + 1}">Próximo</a></li>`;
-        paginationHtml += '</ul>';
 
-        container.innerHTML = paginationHtml;
-
-        container.querySelectorAll('.page-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const page = parseInt(e.target.dataset.page);
-                if (page && page >= 1 && page <= totalPages && page !== currentPage) {
-                    currentPage = page;
-                    fetchAndRenderData();
+        // Inicializa o DataTables com as configurações
+        dataTableInstance = new DataTable(tableElement, {
+            data: data,
+            columns: columns,
+            responsive: true,
+            destroy: true,
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/2.0.8/i18n/pt-BR.json',
+            },
+            // Garante que o HTML dentro das células (como o Accordion) seja renderizado
+            columnDefs: [{
+                targets: '_all',
+                render: function (data, type, row) {
+                    if (type === 'display') {
+                        return data;
+                    }
+                    // Para ordenação e busca, extrai o texto puro do HTML
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = data;
+                    return tempDiv.textContent || tempDiv.innerText || '';
                 }
-            });
+            }]
         });
     }
 
-    // --- LÓGICA DE BUSCA DE DADOS (Refatorada) ---
-    async function fetchAndRenderData() {
+    // --- EVENT LISTENERS (Atualizados) ---
+
+    $('#btn-auth').addEventListener('click', () => window.location.href = '/auth/connect');
+    $('#btn-disconnect').addEventListener('click', () => window.location.href = '/auth/disconnect');
+
+    $('#btn-filtrar').addEventListener('click', async () => {
         const entityValue = $('#filter-entity').value;
-        const entityName = $('#filter-entity').selectedOptions[0].text;
         const startDate = $('#filter-startDate').value;
         const endDate = $('#filter-endDate').value;
         const outputDiv = $('#output');
@@ -196,10 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
         dataContainer.style.display = 'none';
 
         try {
-            const params = new URLSearchParams({
-                pagina: currentPage,
-                tamanho_pagina: itemsPerPage
-            });
+            const params = new URLSearchParams();
+            // A busca no back-end não precisa de paginação; o DataTables cuida disso no front-end
             if (startDate) params.append('data_inicio', startDate);
             if (endDate) params.append('data_fim', endDate);
 
@@ -207,9 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const json = await res.json();
 
             if (json.ok) {
-                totalItems = json.totalItems || json.data.length;
-
-                let rawData = json.data;
+                let rawData = json.data || [];
+                // Roteador de formatação
                 switch (entityValue) {
                     case 'vendas': formattedData = formatSalesData(rawData); break;
                     case 'pessoas': formattedData = formatPeopleData(rawData); break;
@@ -217,8 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     default: formattedData = rawData;
                 }
 
-                renderTable(formattedData, entityName);
-                renderPagination();
+                initializeDataTable(formattedData);
+
                 dataContainer.style.display = 'block';
                 outputDiv.innerHTML = '';
             } else {
@@ -228,15 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
             outputDiv.innerHTML = `<pre class="text-danger">${error.message}</pre>`;
             dataContainer.style.display = 'none';
         }
-    }
-
-    // --- EVENT LISTENERS ---
-    $('#btn-auth').addEventListener('click', () => window.location.href = '/auth/connect');
-    $('#btn-disconnect').addEventListener('click', () => window.location.href = '/auth/disconnect');
-
-    $('#btn-filtrar').addEventListener('click', () => {
-        currentPage = 1;
-        fetchAndRenderData();
     });
 
     $('#btn-mostrar-historico').addEventListener('click', async () => {
@@ -246,17 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
         $('#output').innerHTML = '<pre>' + JSON.stringify(json, null, 2) + '</pre>';
     });
 
-    $('#table-filter').addEventListener('keyup', (e) => {
-        const table = $('.data-table');
-        if (!table) return;
-        const lowerCaseSearchText = e.target.value.toLowerCase();
-        table.querySelectorAll('tbody tr').forEach(row => {
-            const rowText = row.textContent.toLowerCase();
-            row.style.display = rowText.includes(lowerCaseSearchText) ? '' : 'none';
-        });
-    });
+    // --- FUNÇÕES DE EXPORTAÇÃO (Permanecem as mesmas) ---
 
-    // --- FUNÇÕES DE EXPORTAÇÃO (Correção do Cliente) ---
     function getExportData() {
         return formattedData.map(row => {
             const cleanRow = { ...row };
