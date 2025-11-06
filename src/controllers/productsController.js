@@ -8,7 +8,7 @@ module.exports = {
         try {
             const filters = buildDateFilters(req.query);
             const params = { ...req.query, ...filters };
-            const result = await contaAzul.get('/v1/products', { params });
+            const result = await contaAzul.get('/v1/produtos', { params });
             const saved = await jsonManager.save('produtos', result);
             return res.json({ ok: true, saved });
         } catch (err) {

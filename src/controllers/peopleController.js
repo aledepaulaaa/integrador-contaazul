@@ -9,7 +9,7 @@ module.exports = {
             const filters = buildDateFilters(req.query);
             const params = { ...req.query, ...filters };
             // Usar endpoint de contatos/people (verificar path na API)
-            const result = await contaAzul.get('/v1/contacts', { params });
+            const result = await contaAzul.get('/v1/pessoas', { params });
             const saved = await jsonManager.save('pessoas', result);
             return res.json({ ok: true, saved });
         } catch (err) {

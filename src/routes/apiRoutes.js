@@ -6,7 +6,6 @@ const salesController = require('../controllers/salesController');
 const peopleController = require('../controllers/peopleController');
 const productsController = require('../controllers/productsController');
 const invoicesController = require('../controllers/invoicesController');
-const chargesController = require('../controllers/chargesController');
 const historyController = require('../controllers/historyController');
 
 // Vendas
@@ -17,8 +16,6 @@ router.get('/pessoas', peopleController.listPeople);
 router.get('/produtos', productsController.listProducts);
 // Notas fiscais
 router.get('/notas', invoicesController.listInvoices);
-// Cobranças
-router.get('/cobrancas', chargesController.listCharges);
 
 // Histórico
 router.get('/historico', historyController.list);
