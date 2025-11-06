@@ -4,8 +4,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Helper para selecionar elementos
     const $ = (s) => document.querySelector(s);
 
-    // Armazena os dados formatados da última busca para uso na exportação
+    // Variáveis de estado para gerenciar os dados e a paginação
     let formattedData = [];
+    let currentPage = 1;
+    let totalItems = 0;
+    const itemsPerPage = 100; // Define o máximo de itens por página
 
     // --- FUNÇÕES DE FORMATAÇÃO E TRANSFORMAÇÃO DE DADOS ---
 
@@ -34,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @returns {string} - O HTML do accordion.
      */
     function createAccordion(id, buttonText, details) {
+        if (!buttonText || buttonText === 'undefined, undefined') buttonText = 'Ver Detalhes';
         const detailsHtml = Object.entries(details)
             .map(([key, value]) => `<strong>${key}:</strong> ${value || 'N/A'}<br>`)
             .join('');
@@ -65,8 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 'Tipo': venda.tipo === 'SALE' ? 'Venda' : venda.tipo,
                 'Item': venda.itens === 'PRODUCT' ? 'Produto' : venda.itens,
                 'Pago': venda.condicao_pagamento ? 'Sim' : 'Não',
-                'Total': venda.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-                'Cliente': createAccordion(venda.id, venda.cliente?.nome, clienteDetails),
+                'Total': (venda.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+                'Cliente': createAccordion(venda.id, venda.cliente?.nome || 'N/A', clienteDetails),
                 'Situação': venda.situacao?.descricao || 'N/A'
             };
         });
@@ -108,7 +112,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
     }
 
-    // --- FUNÇÕES DE RENDERIZAÇÃO ---
+    // --- LÓGICA DE ORDENAÇÃO DA TABELA ---
+    function sortTableByColumn(headerCell) {
+        const table = headerCell.closest('table');
+        const columnIndex = Array.from(headerCell.parentNode.children).indexOf(headerCell);
+        const isAscending = headerCell.classList.contains('sort-asc');
+        const sortOrder = isAscending ? -1 : 1;
+
+        const rows = Array.from(table.querySelectorAll('tbody tr'));
+
+        rows.sort((rowA, rowB) => {
+            const cellA = rowA.children[columnIndex].textContent.trim().toLowerCase();
+            const cellB = rowB.children[columnIndex].textContent.trim().toLowerCase();
+            if (cellA < cellB) return -1 * sortOrder;
+            if (cellA > cellB) return 1 * sortOrder;
+            return 0;
+        });
+
+        table.querySelector('tbody').append(...rows);
+
+        table.querySelectorAll('th').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
+        headerCell.classList.toggle('sort-asc', !isAscending);
+        headerCell.classList.toggle('sort-desc', isAscending);
+    }
+
+    // --- FUNÇÕES DE RENDERIZAÇÃO (Atualizadas) ---
 
     function renderTable(data, entityName) {
         const container = $('#table-responsive-container');
@@ -117,27 +145,46 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const headers = Object.keys(data[0]);
-        const headerHtml = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
+        const headerHtml = `<thead><tr>${headers.map(h => `<th class="sortable-header" style="cursor: pointer;">${h} ↕️</th>`).join('')}</tr></thead>`;
         const bodyHtml = `<tbody>${data.map(row => `<tr>${headers.map(header => `<td>${row[header]}</td>`).join('')}</tr>`).join('')}</tbody>`;
         container.innerHTML = `<table class="table table-dark table-hover data-table">${headerHtml}${bodyHtml}</table>`;
-    }
 
-    function filterTable(searchText) {
-        const table = $('.data-table');
-        if (!table) return;
-        const lowerCaseSearchText = searchText.toLowerCase();
-        table.querySelectorAll('tbody tr').forEach(row => {
-            const rowText = row.textContent.toLowerCase();
-            row.style.display = rowText.includes(lowerCaseSearchText) ? '' : 'none';
+        container.querySelectorAll('.sortable-header').forEach(header => {
+            header.addEventListener('click', () => sortTableByColumn(header));
         });
     }
 
-    // --- EVENT LISTENERS ---
+    function renderPagination() {
+        const container = $('#pagination-container');
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        container.innerHTML = '';
 
-    $('#btn-auth').addEventListener('click', () => window.location.href = '/auth/connect');
-    $('#btn-disconnect').addEventListener('click', () => window.location.href = '/auth/disconnect');
+        if (totalPages <= 1) return;
 
-    $('#btn-filtrar').addEventListener('click', async () => {
+        let paginationHtml = '<ul class="pagination">';
+        paginationHtml += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage - 1}">Anterior</a></li>`;
+        for (let i = 1; i <= totalPages; i++) {
+            paginationHtml += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+        }
+        paginationHtml += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage + 1}">Próximo</a></li>`;
+        paginationHtml += '</ul>';
+
+        container.innerHTML = paginationHtml;
+
+        container.querySelectorAll('.page-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = parseInt(e.target.dataset.page);
+                if (page && page >= 1 && page <= totalPages && page !== currentPage) {
+                    currentPage = page;
+                    fetchAndRenderData();
+                }
+            });
+        });
+    }
+
+    // --- LÓGICA DE BUSCA DE DADOS (Refatorada) ---
+    async function fetchAndRenderData() {
         const entityValue = $('#filter-entity').value;
         const entityName = $('#filter-entity').selectedOptions[0].text;
         const startDate = $('#filter-startDate').value;
@@ -149,7 +196,10 @@ document.addEventListener('DOMContentLoaded', () => {
         dataContainer.style.display = 'none';
 
         try {
-            const params = new URLSearchParams();
+            const params = new URLSearchParams({
+                pagina: currentPage,
+                tamanho_pagina: itemsPerPage
+            });
             if (startDate) params.append('data_inicio', startDate);
             if (endDate) params.append('data_fim', endDate);
 
@@ -157,23 +207,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const json = await res.json();
 
             if (json.ok) {
-                // Roteador de formatação: chama a função correta para a entidade selecionada
+                totalItems = json.totalItems || json.data.length;
+
+                let rawData = json.data;
                 switch (entityValue) {
-                    case 'vendas':
-                        formattedData = formatSalesData(json.data);
-                        break;
-                    case 'pessoas':
-                        formattedData = formatPeopleData(json.data);
-                        break;
-                    case 'produtos':
-                        formattedData = formatProductsData(json.data);
-                        break;
-                    // Adicione um case para 'notas' quando criar a função formatNotesData
-                    default:
-                        formattedData = json.data; // Fallback para dados não formatados
+                    case 'vendas': formattedData = formatSalesData(rawData); break;
+                    case 'pessoas': formattedData = formatPeopleData(rawData); break;
+                    case 'produtos': formattedData = formatProductsData(rawData); break;
+                    default: formattedData = rawData;
                 }
 
                 renderTable(formattedData, entityName);
+                renderPagination();
                 dataContainer.style.display = 'block';
                 outputDiv.innerHTML = '';
             } else {
@@ -183,6 +228,15 @@ document.addEventListener('DOMContentLoaded', () => {
             outputDiv.innerHTML = `<pre class="text-danger">${error.message}</pre>`;
             dataContainer.style.display = 'none';
         }
+    }
+
+    // --- EVENT LISTENERS ---
+    $('#btn-auth').addEventListener('click', () => window.location.href = '/auth/connect');
+    $('#btn-disconnect').addEventListener('click', () => window.location.href = '/auth/disconnect');
+
+    $('#btn-filtrar').addEventListener('click', () => {
+        currentPage = 1;
+        fetchAndRenderData();
     });
 
     $('#btn-mostrar-historico').addEventListener('click', async () => {
@@ -192,12 +246,18 @@ document.addEventListener('DOMContentLoaded', () => {
         $('#output').innerHTML = '<pre>' + JSON.stringify(json, null, 2) + '</pre>';
     });
 
-    $('#table-filter').addEventListener('keyup', (e) => filterTable(e.target.value));
+    $('#table-filter').addEventListener('keyup', (e) => {
+        const table = $('.data-table');
+        if (!table) return;
+        const lowerCaseSearchText = e.target.value.toLowerCase();
+        table.querySelectorAll('tbody tr').forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            row.style.display = rowText.includes(lowerCaseSearchText) ? '' : 'none';
+        });
+    });
 
-    // --- FUNÇÕES DE EXPORTAÇÃO APRIMORADAS ---
-
+    // --- FUNÇÕES DE EXPORTAÇÃO (Correção do Cliente) ---
     function getExportData() {
-        // Para exportação, removemos colunas com HTML e extraímos o texto puro.
         return formattedData.map(row => {
             const cleanRow = { ...row };
             for (const key in cleanRow) {

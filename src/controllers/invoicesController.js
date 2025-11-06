@@ -1,23 +1,25 @@
-//src/controllers/invoicesController.js
+// ARQUIVO: src/controllers/invoicesController.js
 const contaAzul = require('../utils/contaAzulAPI');
 const jsonManager = require('../models/jsonManager');
-const { buildDateFilters } = require('../utils/dateUtils');
 
 module.exports = {
     listInvoices: async (req, res) => {
         try {
-            const filters = buildDateFilters(req.query);
-            const defaultParams = { pagina: 1, tamanho_pagina: 20 };
+            // "Traduz" os nomes dos parâmetros do front-end para os esperados pela API de Notas Fiscais
+            const apiParams = {
+                pagina: 1,
+                tamanho_pagina: 100, // Aumentado o limite padrão
+                data_emissao_inicio: req.query.data_inicio,
+                data_emissao_fim: req.query.data_fim
+            };
 
-            const params = { ...defaultParams, ...req.query, ...filters };
-
-            const result = await contaAzul.get('/notas-fiscais', { params });
-
+            const result = await contaAzul.get('/notas-fiscais', { params: apiParams });
             await jsonManager.save('notas_fiscais', result);
 
-            return res.json({ ok: true, data: result.itens });
+            // Retorna a lista de itens e o total para a paginação
+            return res.json({ ok: true, data: result.itens, totalItems: result.total_itens });
         } catch (err) {
-            console.error(err.response?.data || err.message);
+            console.error('Erro ao buscar Notas Fiscais:', err.response?.data || err.message);
             return res.status(err.response?.status || 500).json({ ok: false, error: err.message });
         }
     }
