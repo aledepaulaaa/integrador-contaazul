@@ -11,9 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Formata data/hora do formato ISO para o padrão brasileiro.
-     * @param {string} isoString - A data no formato ISO (ex: "2025-11-04T11:05:39.608").
-     * @param {boolean} includeTime - Se deve incluir a hora na formatação.
-     * @returns {string} - A data formatada (ex: "04/11/2025" ou "04/11/2025 - 11:05:39").
+     * @param {string} isoString - A data no formato ISO.
+     * @param {boolean} includeTime - Se deve incluir a hora.
+     * @returns {string} - A data formatada.
      */
     function formatDateTime(isoString, includeTime = false) {
         if (!isoString) return 'N/A';
@@ -27,67 +27,98 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Transforma os dados brutos de vendas da API em um formato amigável para exibição.
-     * @param {Array<Object>} rawData - O array de vendas retornado pela API.
-     * @returns {Array<Object>} - Um novo array com os dados formatados e traduzidos.
+     * Cria um Accordion do Bootstrap para exibir dados complexos.
+     * @param {string} id - Um ID único para o accordion.
+     * @param {string} buttonText - O texto a ser exibido no botão do accordion.
+     * @param {Object} details - Um objeto com os detalhes a serem mostrados no corpo do accordion.
+     * @returns {string} - O HTML do accordion.
      */
-    function formatSalesData(rawData) {
-        if (!rawData) return [];
+    function createAccordion(id, buttonText, details) {
+        const detailsHtml = Object.entries(details)
+            .map(([key, value]) => `<strong>${key}:</strong> ${value || 'N/A'}<br>`)
+            .join('');
 
-        const tipoMap = { 'SALE': 'Venda', 'SERVICE': 'Serviço' }; // Mapeamento para tradução
-        const pagoMap = { false: 'Não', true: 'Sim' };
-
-        return rawData.map(venda => {
-            // Cria o HTML do accordion para os detalhes do cliente
-            const clienteHtml = `
-                <div class="accordion accordion-flush" id="accordion-${venda.id}">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${venda.id}">
-                                ${venda.cliente?.nome || 'N/A'}
-                            </button>
-                        </h2>
-                        <div id="collapse-${venda.id}" class="accordion-collapse collapse" data-bs-parent="#accordion-${venda.id}">
-                            <div class="accordion-body">
-                                <strong>Email:</strong> ${venda.cliente?.email || 'N/A'}
-                            </div>
-                        </div>
+        return `
+            <div class="accordion accordion-flush" id="accordion-${id}">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${id}">
+                            ${buttonText}
+                        </button>
+                    </h2>
+                    <div id="collapse-${id}" class="accordion-collapse collapse" data-bs-parent="#accordion-${id}">
+                        <div class="accordion-body">${detailsHtml}</div>
                     </div>
                 </div>
-            `;
+            </div>
+        `;
+    }
 
+    /** Formata dados de VENDAS */
+    function formatSalesData(rawData) {
+        return rawData.map(venda => {
+            const clienteDetails = { Nome: venda.cliente?.nome, Email: venda.cliente?.email };
             return {
                 'Data': formatDateTime(venda.data),
                 'Criado em': formatDateTime(venda.criado_em, true),
                 'Alterado em': formatDateTime(venda.data_alteracao, true),
-                'Tipo': tipoMap[venda.tipo] || venda.tipo,
+                'Tipo': venda.tipo === 'SALE' ? 'Venda' : venda.tipo,
                 'Item': venda.itens === 'PRODUCT' ? 'Produto' : venda.itens,
-                'Pago': pagoMap[venda.condicao_pagamento],
+                'Pago': venda.condicao_pagamento ? 'Sim' : 'Não',
                 'Total': venda.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-                'Cliente': clienteHtml,
+                'Cliente': createAccordion(venda.id, venda.cliente?.nome, clienteDetails),
                 'Situação': venda.situacao?.descricao || 'N/A'
             };
         });
     }
 
+    /** Formata dados de PESSOAS */
+    function formatPeopleData(rawData) {
+        return rawData.map(pessoa => {
+            const endereco = pessoa.endereco || {};
+            const enderecoDetails = {
+                Logradouro: `${endereco.logradouro}, ${endereco.numero}`,
+                Bairro: endereco.bairro,
+                Cidade: `${endereco.cidade} - ${endereco.estado}`,
+                CEP: endereco.cep
+            };
+            return {
+                'Nome': pessoa.nome,
+                'Email': pessoa.email,
+                'Telefone': pessoa.telefone,
+                'Tipo': pessoa.tipo_pessoa === 'FISICA' ? 'Física' : 'Jurídica',
+                'Perfis': pessoa.perfis ? pessoa.perfis.join(', ') : 'N/A',
+                'Endereço': createAccordion(pessoa.id, `${endereco.logradouro}, ${endereco.numero}`, enderecoDetails),
+                'Ativo': pessoa.ativo ? 'Sim' : 'Não'
+            };
+        });
+    }
+
+    /** Formata dados de PRODUTOS */
+    function formatProductsData(rawData) {
+        return rawData.map(produto => ({
+            'Código': produto.codigo,
+            'Nome': produto.nome,
+            'Valor de Venda': (produto.valor_venda || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+            'Custo Médio': (produto.custo_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+            'Saldo': produto.saldo,
+            'Status': produto.status === 'ATIVO' ? 'Ativo' : 'Inativo',
+            'Variações': produto.produtos_variacao ? `${produto.produtos_variacao.length} variações` : 'Nenhuma',
+            'Atualizado em': formatDateTime(produto.ultima_atualizacao, true)
+        }));
+    }
+
     // --- FUNÇÕES DE RENDERIZAÇÃO ---
 
-    function renderTable(data) {
+    function renderTable(data, entityName) {
         const container = $('#table-responsive-container');
-        const entityName = $('#filter-entity').selectedOptions[0].text;
-
         if (!data || data.length === 0) {
             container.innerHTML = `<p class="text-center p-3">Nenhum dado de "${entityName}" encontrado para os filtros selecionados.</p>`;
             return;
         }
-
         const headers = Object.keys(data[0]);
         const headerHtml = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
-
-        const bodyHtml = `<tbody>${data.map(row =>
-            `<tr>${headers.map(header => `<td>${row[header]}</td>`).join('')}</tr>`
-        ).join('')}</tbody>`;
-
+        const bodyHtml = `<tbody>${data.map(row => `<tr>${headers.map(header => `<td>${row[header]}</td>`).join('')}</tr>`).join('')}</tbody>`;
         container.innerHTML = `<table class="table table-dark table-hover data-table">${headerHtml}${bodyHtml}</table>`;
     }
 
@@ -107,7 +138,8 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#btn-disconnect').addEventListener('click', () => window.location.href = '/auth/disconnect');
 
     $('#btn-filtrar').addEventListener('click', async () => {
-        const entity = $('#filter-entity').value;
+        const entityValue = $('#filter-entity').value;
+        const entityName = $('#filter-entity').selectedOptions[0].text;
         const startDate = $('#filter-startDate').value;
         const endDate = $('#filter-endDate').value;
         const outputDiv = $('#output');
@@ -121,19 +153,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (startDate) params.append('data_inicio', startDate);
             if (endDate) params.append('data_fim', endDate);
 
-            const res = await fetch(`/api/${entity}?${params.toString()}`);
+            const res = await fetch(`/api/${entityValue}?${params.toString()}`);
             const json = await res.json();
 
             if (json.ok) {
-                // A MÁGICA ACONTECE AQUI: Formata os dados antes de usar
-                if (entity === 'vendas') {
-                    formattedData = formatSalesData(json.data);
-                } else {
-                    // Adicione formatadores para outras entidades aqui se necessário
-                    formattedData = json.data;
+                // Roteador de formatação: chama a função correta para a entidade selecionada
+                switch (entityValue) {
+                    case 'vendas':
+                        formattedData = formatSalesData(json.data);
+                        break;
+                    case 'pessoas':
+                        formattedData = formatPeopleData(json.data);
+                        break;
+                    case 'produtos':
+                        formattedData = formatProductsData(json.data);
+                        break;
+                    // Adicione um case para 'notas' quando criar a função formatNotesData
+                    default:
+                        formattedData = json.data; // Fallback para dados não formatados
                 }
 
-                renderTable(formattedData);
+                renderTable(formattedData, entityName);
                 dataContainer.style.display = 'block';
                 outputDiv.innerHTML = '';
             } else {
@@ -157,39 +197,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNÇÕES DE EXPORTAÇÃO APRIMORADAS ---
 
     function getExportData() {
-        // Para exportação, removemos colunas com HTML (como o Accordion)
-        // e pegamos o texto puro.
+        // Para exportação, removemos colunas com HTML e extraímos o texto puro.
         return formattedData.map(row => {
             const cleanRow = { ...row };
-            // Extrai o nome do cliente do HTML do accordion
-            const match = cleanRow['Cliente'].match(/<button.*?>(.*?)<\/button>/);
-            cleanRow['Cliente'] = match ? match[1].trim() : 'N/A';
+            for (const key in cleanRow) {
+                if (typeof cleanRow[key] === 'string' && cleanRow[key].includes('accordion')) {
+                    const match = cleanRow[key].match(/<button.*?>(.*?)<\/button>/);
+                    cleanRow[key] = match ? match[1].trim() : 'N/A';
+                }
+            }
             return cleanRow;
         });
     }
 
     $('#btn-export-pdf').addEventListener('click', () => {
         if (formattedData.length === 0) return alert('Não há dados para exportar.');
-
         const exportData = getExportData();
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'landscape' });
-
         const headers = Object.keys(exportData[0]);
         const body = exportData.map(row => headers.map(header => row[header]));
-
-        doc.autoTable({
-            head: [headers],
-            body: body,
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [15, 23, 36] }
-        });
+        doc.autoTable({ head: [headers], body: body, styles: { fontSize: 8 }, headStyles: { fillColor: [15, 23, 36] } });
         doc.save(`relatorio_${$('#filter-entity').value}.pdf`);
     });
 
     $('#btn-export-excel').addEventListener('click', () => {
         if (formattedData.length === 0) return alert('Não há dados para exportar.');
-
         const exportData = getExportData();
         const worksheet = XLSX.utils.json_to_sheet(exportData);
         const workbook = XLSX.utils.book_new();
