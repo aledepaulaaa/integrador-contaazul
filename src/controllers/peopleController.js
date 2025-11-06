@@ -7,8 +7,8 @@ module.exports = {
     listPeople: async (req, res) => {
         try {
             const filters = buildDateFilters(req.query);
-            const params = { ...req.query, ...filters };
-            // Usar endpoint de contatos/people (verificar path na API)
+            const defaultParams = { pagina: 1, tamanho_pagina: 20 };
+            const params = { ...defaultParams, ...req.query, ...filters };
             const result = await contaAzul.get('/pessoas', { params });
             const saved = await jsonManager.save('pessoas', result);
             return res.json({ ok: true, saved });

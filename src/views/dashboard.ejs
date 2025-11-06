@@ -1,64 +1,53 @@
-<!-- /src/views/dashboard.ejs -->
-    <div class="glass-card p-4">
-        <h1 class="mb-4">Bem-vindo ao Integrador Conta Azul</h1>
+<!-- ARQUIVO: /src/views/dashboard.ejs -->
 
-        <!-- Filtros de data e entidade -->
-        <div class="mb-4">
-            <div class="row g-2">
-                <div class="col-12 col-md-4">
-                    <input type="date" id="filter-startDate" class="form-control" placeholder="Data início">
-                </div>
-                <div class="col-12 col-md-4">
-                    <input type="date" id="filter-endDate" class="form-control" placeholder="Data fim">
-                </div>
-                <div class="col-12 col-md-4">
-                    <select id="filter-entity" class="form-select">
-                        <option value="vendas">Vendas</option>
-                        <option value="pessoas">Pessoas</option>
-                        <option value="produtos">Produtos</option>
-                        <option value="notas">Notas Fiscais</option>
-                    </select>
-                </div>
-            </div>
-            <div class="mt-2">
-                <button id="btn-filtrar" class="btn btn-glass">Filtrar</button>
-                <button id="btn-mostrar-historico" class="btn btn-glass">Mostrar Histórico</button>
-            </div>
-        </div>
+<div class="glass-card p-4">
+    <h1 class="mb-4">Bem-vindo ao Integrador Conta Azul</h1>
 
-        <div id="cards" class="row">
-            <div class="col-6 col-md-3 mb-3">
-                <div class="card glass-card">
-                    <div class="card-body">
-                        <h5 class="card-title">Vendas</h5>
-                        <p class="card-text">Busca e salva vendas.</p>
-                    </div>
+    <!-- Filtros de data e entidade -->
+    <div class="mb-4">
+        <div class="row g-2 align-items-center">
+            <div class="col-12 col-md-3">
+                <input type="date" id="filter-startDate" class="form-control" placeholder="Data início">
+            </div>
+            <div class="col-12 col-md-3">
+                <input type="date" id="filter-endDate" class="form-control" placeholder="Data fim">
+            </div>
+            <div class="col-12 col-md-3">
+                <select id="filter-entity" class="form-select">
+                    <option value="vendas">Vendas</option>
+                    <option value="pessoas">Pessoas</option>
+                    <option value="produtos">Produtos</option>
+                    <option value="notas">Notas Fiscais</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <div class="d-grid gap-2 d-md-flex">
+                    <button id="btn-filtrar" class="btn btn-glass w-100">Filtrar</button>
+                    <button id="btn-mostrar-historico" class="btn btn-glass w-100">Histórico</button>
                 </div>
             </div>
-            <div class="col-6 col-md-3 mb-3">
-                <div class="card glass-card">
-                    <div class="card-body">
-                        <h5 class="card-title">Pessoas</h5>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3 mb-3">
-                <div class="card glass-card">
-                    <div class="card-body">
-                        <h5 class="card-title">Produtos</h5>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-3 mb-3">
-                <div class="card glass-card">
-                    <div class="card-body">
-                        <h5 class="card-title">Notas</h5>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="output" class="mt-4">
-            <!-- Resultado da chamada será mostrado aqui -->
         </div>
     </div>
+
+    <!-- Container de Resultado: Começa escondido e é preenchido pelo JavaScript -->
+    <div id="output" class="mt-4">
+        <!-- A mensagem "Buscando..." ou erros aparecerão aqui -->
+    </div>
+
+    <div id="data-container" class="glass-card p-3 mt-4" style="display: none;">
+        <!-- Ações: Filtro de Tabela e Botões de Exportação -->
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <input type="text" id="table-filter" class="form-control" style="max-width: 400px;"
+                placeholder="Filtrar resultados na tabela...">
+            <div>
+                <button id="btn-export-pdf" class="btn btn-glass">Exportar PDF</button>
+                <button id="btn-export-excel" class="btn btn-glass">Exportar Excel</button>
+            </div>
+        </div>
+
+        <!-- Tabela Responsiva -->
+        <div id="table-responsive-container" class="table-responsive">
+            <!-- A tabela dinâmica será inserida aqui -->
+        </div>
+    </div>
+</div>

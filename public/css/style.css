@@ -28,3 +28,24 @@ body {
   padding: 12px;
   border-radius: 8px;
 }
+
+#data-container {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.data-table th, .data-table td {
+  vertical-align: middle;
+}
+
+.data-table td {
+  /* Evita que células com JSON grande quebrem o layout */
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-responsive-container {
+    max-height: 500px; /* Adiciona uma barra de rolagem se a tabela for muito grande */
+    overflow: auto;
+}
