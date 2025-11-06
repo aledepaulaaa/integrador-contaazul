@@ -10,8 +10,7 @@ module.exports = {
                 pagina: req.query.pagina || 1,
                 tamanho_pagina: 100
             };
-            code
-            Code
+
             // Adiciona os filtros de data apenas se eles existirem
             if (req.query.data_inicio) apiParams.ultima_atualizacao_de = req.query.data_inicio;
             if (req.query.data_fim) apiParams.ultima_atualizacao_ate = req.query.data_fim;
