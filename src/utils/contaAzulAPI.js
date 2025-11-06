@@ -9,7 +9,7 @@ const SESSION_FILE = path.join(__dirname, '..', '..', 'data', 'auth', 'session.j
 const TOKEN_URL = process.env.AUTH_TOKEN_URL || 'https://auth.contaazul.com/oauth2/token';
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI;
+const REDIRECT_URI = process.env.REDIRECT_URI
 
 async function getSession() {
     if (!await fs.pathExists(SESSION_FILE)) return null;
@@ -39,13 +39,14 @@ async function refreshTokenIfNeeded(session) {
         // 2. Monte o payload SEM as credenciais
         const payload = qs.stringify({
             grant_type: 'refresh_token',
-            refresh_token: session.refresh_token
+            refresh_token: session.refresh_token,
+            redirect_uri: REDIRECT_URI
         });
 
         // 3. Faça a requisição com o header de autorização
         const response = await axios.post(TOKEN_URL, payload, {
             headers: {
-                'Content-Type': 'application/x-form-urlencoded',
+                'Content-Type': 'application/x-www-form-urlencoded',
                 'Authorization': `Basic ${credentials}`
             }
         });
