@@ -49,3 +49,37 @@ body {
     max-height: 500px; /* Adiciona uma barra de rolagem se a tabela for muito grande */
     overflow: auto;
 }
+
+/* Estilos para o Accordion de Cliente na Tabela */
+.accordion-item {
+    background-color: transparent;
+    border: none;
+}
+
+.accordion-button {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.accordion-button::after {
+    /* Deixa a seta do accordion branca */
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.accordion-body {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 0.75rem;
+    color: #ccc;
+}
