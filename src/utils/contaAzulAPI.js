@@ -31,10 +31,10 @@ async function refreshTokenIfNeeded(session) {
     if (now >= expiresAt - 60) {
         console.log('Token expirado ou prestes a expirar. Renovando...');
 
-        // --- INÍCIO DA ALTERAÇÃO ---
-
         // 1. Crie o cabeçalho de autorização Basic
         const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
+
+        console.log("Credenciais: ", credentials)
 
         // 2. Monte o payload SEM as credenciais
         const payload = qs.stringify({
@@ -51,9 +51,8 @@ async function refreshTokenIfNeeded(session) {
             }
         });
 
-        // --- FIM DA ALTERAÇÃO ---
-
         const newSession = response.data;
+        console.log("Nova Sessão gerada: ", newSession)
         // Salva o timestamp de quando o token foi criado para calcular a expiração futura
         newSession.created_at = Date.now() / 1000;
         await saveSession(newSession);
@@ -84,6 +83,7 @@ async function get(pathUrl, opts = {}) {
 async function post(pathUrl, body, opts = {}) {
     const headers = await ensureAuthHeaders();
     const url = `${API_BASE}${pathUrl}`;
+    console.log("URL :", url)
     const response = await axios.post(url, body, { headers, ...opts });
     return response.data;
 }
