@@ -8,7 +8,7 @@ module.exports = {
         try {
             const filters = buildDateFilters(req.query);
             const params = { ...req.query, ...filters };
-            const result = await contaAzul.get('/v1/notas-fiscais', { params });
+            const result = await contaAzul.get('/notas-fiscais', { params });
             const saved = await jsonManager.save('notas_fiscais', result);
             return res.json({ ok: true, saved });
         } catch (err) {

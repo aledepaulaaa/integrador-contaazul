@@ -8,7 +8,7 @@ module.exports = {
         try {
             const params = req.query;
             // Exemplo de endpoint - pode precisar ajustar à doc oficial
-            const result = await contaAzul.get('/v1/venda/busca', { params });
+            const result = await contaAzul.get('/venda/busca', { params });
 
             // salva o resultado localmente
             const saved = await jsonManager.save('vendas', result);
