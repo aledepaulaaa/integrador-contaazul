@@ -1,4 +1,5 @@
 // ARQUIVO: /public/js/main.js
+
 document.addEventListener('DOMContentLoaded', () => {
     // Helper para selecionar elementos
     const $ = (s) => document.querySelector(s);
