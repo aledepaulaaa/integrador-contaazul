@@ -15,6 +15,16 @@ module.exports = {
             if (req.query.data_inicio) apiParams.data_emissao_inicio = req.query.data_inicio;
             if (req.query.data_fim) apiParams.data_emissao_fim = req.query.data_fim;
 
+            // Garante que pelo menos um dos campos de data obrigatórios seja enviado
+            if (!apiParams.data_emissao_inicio && !apiParams.data_emissao_fim) {
+                // Se nenhum for enviado, podemos definir um padrão, por exemplo, o último mês
+                const today = new Date();
+                const lastMonth = new Date();
+                lastMonth.setMonth(today.getMonth() - 1);
+                apiParams.data_emissao_inicio = lastMonth.toISOString().split('T')[0];
+                apiParams.data_emissao_fim = today.toISOString().split('T')[0];
+            }
+
             const result = await contaAzul.get('/notas-fiscais', { params: apiParams });
             await jsonManager.save('notas_fiscais', result);
 
