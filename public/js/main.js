@@ -72,20 +72,37 @@ document.addEventListener('DOMContentLoaded', () => {
         let entityValue = $('#filter-entity').value;
         const startDate = $('#filter-startDate').value;
         const endDate = $('#filter-endDate').value;
+        const financeId = $('#finance-id-filter').value.trim();
         const outputDiv = $('#output');
         const dataContainer = $('#data-container');
 
-        // Lógica especial para o seletor de Financeiro
+        let apiPath = '';
+        const params = new URLSearchParams();
+
+        // Lógica para determinar a rota e os parâmetros corretos
         if (entityValue === 'financeiro') {
             entityValue = $('#finance-subtype').value;
-        }
 
-        // Encontra o "handler" (módulo) correto para a entidade selecionada
-        const handler = window.appHandlers[entityValue];
-        if (!handler || typeof handler.format !== 'function') {
-            console.error(`Handler para a entidade "${entityValue}" não foi encontrado ou não tem um método 'format'.`);
-            outputDiv.innerHTML = `<pre class="text-danger">Erro de configuração: Módulo para "${entityValue}" não implementado no front-end.</pre>`;
-            return;
+            // Se um ID foi digitado, a busca é por ID
+            if (financeId) {
+                if (entityValue === 'baixas') {
+                    apiPath = `/api/baixa/${financeId}`;
+                } else if (entityValue === 'cobrancas') {
+                    apiPath = `/api/cobranca/${financeId}`;
+                } else {
+                    apiPath = `/api/${entityValue}`; // Centro de custos não tem busca por ID aqui
+                }
+            } else {
+                // Se não, a busca é por data
+                apiPath = `/api/${entityValue}`;
+                if (startDate) params.append('data_inicio', startDate);
+                if (endDate) params.append('data_fim', endDate);
+            }
+        } else {
+            // Para as outras entidades, a busca é sempre por data
+            apiPath = `/api/${entityValue}`;
+            if (startDate) params.append('data_inicio', startDate);
+            if (endDate) params.append('data_fim', endDate);
         }
 
         outputDiv.innerHTML = '<p class="text-center">Buscando dados...</p>';
@@ -125,7 +142,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Mostra/esconde o sub-seletor de Financeiro
     $('#filter-entity').addEventListener('change', (e) => {
-        $('#finance-subtype-wrapper').style.display = (e.target.value === 'financeiro') ? 'block' : 'none';
+        const isFinance = e.target.value === 'financeiro';
+        $('#finance-wrapper').style.display = isFinance ? 'block' : 'none';
+        // Esconde os filtros de data se não for relevante para a busca por ID
+        $('#filter-startDate').disabled = isFinance && $('#finance-id-filter').value.trim();
+        $('#filter-endDate').disabled = isFinance && $('#finance-id-filter').value.trim();
     });
 
     $('#btn-mostrar-historico').addEventListener('click', async () => {
@@ -133,6 +154,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const json = await res.json();
         $('#data-container').style.display = 'none';
         $('#output').innerHTML = '<pre>' + JSON.stringify(json, null, 2) + '</pre>';
+    });
+
+    // NOVO LISTENER PARA O CAMPO DE ID
+    $('#finance-id-filter').addEventListener('keyup', (e) => {
+        const hasId = e.target.value.trim() !== '';
+        $('#filter-startDate').disabled = hasId;
+        $('#filter-endDate').disabled = hasId;
     });
 
     // --- FUNÇÕES E LISTENERS DE EXPORTAÇÃO ---

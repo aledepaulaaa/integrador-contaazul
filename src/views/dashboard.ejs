@@ -5,12 +5,15 @@
     <!-- Filtros -->
     <div class="mb-4">
         <div class="row g-2 align-items-center">
+            <!-- Filtros de Data -->
             <div class="col-12 col-md-3">
                 <input type="date" id="filter-startDate" class="form-control">
             </div>
             <div class="col-12 col-md-3">
                 <input type="date" id="filter-endDate" class="form-control">
             </div>
+
+            <!-- Seletor de Entidade Principal -->
             <div class="col-12 col-md-3">
                 <select id="filter-entity" class="form-select">
                     <option value="vendas">Vendas</option>
@@ -20,14 +23,25 @@
                     <option value="financeiro">Financeiro</option>
                 </select>
             </div>
-            <!-- Sub-seletor para Financeiro, inicialmente escondido -->
-            <div class="col-12 col-md-3" id="finance-subtype-wrapper" style="display: none;">
-                <select id="finance-subtype" class="form-select">
-                    <option value="baixas">Baixas</option>
-                    <option value="cobrancas">Cobranças</option>
-                    <option value="centro_de_custos">Centro de Custos</option> <!-- <- ADICIONE ESTA LINHA -->
-                </select>
+
+            <!-- Sub-seletor e Inputs de ID para Financeiro (inicialmente escondidos) -->
+            <div class="col-12 col-md-6" id="finance-wrapper" style="display: none;">
+                <div class="row g-2">
+                    <div class="col-12 col-md-4">
+                        <select id="finance-subtype" class="form-select">
+                            <option value="baixas">Baixas</option>
+                            <option value="cobrancas">Cobranças</option>
+                            <option value="centro_de_custos">Centro de Custos</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-8">
+                        <input type="text" id="finance-id-filter" class="form-control"
+                            placeholder="...ou busque por ID da Parcela/Cobrança">
+                    </div>
+                </div>
             </div>
+
+            <!-- Botões -->
             <div class="col-12 col-md-3">
                 <div class="d-grid gap-2 d-md-flex">
                     <button id="btn-filtrar" class="btn btn-glass w-100">Filtrar</button>
