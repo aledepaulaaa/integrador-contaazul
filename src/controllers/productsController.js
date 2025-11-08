@@ -15,7 +15,7 @@ module.exports = {
             if (req.query.data_inicio) apiParams.ultima_atualizacao_de = req.query.data_inicio;
             if (req.query.data_fim) apiParams.ultima_atualizacao_ate = req.query.data_fim;
 
-            const result = await contaAzul.get('/produto/busca', { params: apiParams });
+            const result = await contaAzul.get('/v1/produto/busca', { params: apiParams });
             await jsonManager.save('produtos', result);
 
             return res.json({ ok: true, data: result.items, totalItems: result.totalItems });

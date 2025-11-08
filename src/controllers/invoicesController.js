@@ -25,7 +25,7 @@ module.exports = {
                 apiParams.data_emissao_fim = today.toISOString().split('T')[0];
             }
 
-            const result = await contaAzul.get('/notas-fiscais', { params: apiParams });
+            const result = await contaAzul.get('/v1/notas-fiscais', { params: apiParams });
             await jsonManager.save('notas_fiscais', result);
 
             return res.json({ ok: true, data: result.itens, totalItems: result.total_itens });

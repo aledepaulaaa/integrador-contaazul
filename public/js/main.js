@@ -79,27 +79,18 @@ document.addEventListener('DOMContentLoaded', () => {
         let apiPath = '';
         const params = new URLSearchParams();
 
-        // Lógica para determinar a rota e os parâmetros corretos
+        // Determina a rota e os parâmetros com base na seleção do usuário
         if (entityValue === 'financeiro') {
             entityValue = $('#finance-subtype').value;
-
-            // Se um ID foi digitado, a busca é por ID
             if (financeId) {
-                if (entityValue === 'baixas') {
-                    apiPath = `/api/baixa/${financeId}`;
-                } else if (entityValue === 'cobrancas') {
-                    apiPath = `/api/cobranca/${financeId}`;
-                } else {
-                    apiPath = `/api/${entityValue}`; // Centro de custos não tem busca por ID aqui
-                }
+                const endpointMap = { baixas: 'baixa', cobrancas: 'cobranca' };
+                apiPath = `/api/${endpointMap[entityValue]}/${financeId}`;
             } else {
-                // Se não, a busca é por data
                 apiPath = `/api/${entityValue}`;
                 if (startDate) params.append('data_inicio', startDate);
                 if (endDate) params.append('data_fim', endDate);
             }
         } else {
-            // Para as outras entidades, a busca é sempre por data
             apiPath = `/api/${entityValue}`;
             if (startDate) params.append('data_inicio', startDate);
             if (endDate) params.append('data_fim', endDate);
@@ -109,33 +100,41 @@ document.addEventListener('DOMContentLoaded', () => {
         dataContainer.style.display = 'none';
 
         try {
-            const params = new URLSearchParams();
-            if (startDate) params.append('data_inicio', startDate);
-            if (endDate) params.append('data_fim', endDate);
-
-            const res = await fetch(`/api/${entityValue}?${params.toString()}`);
+            const fullUrl = `${apiPath}?${params.toString()}`;
+            const res = await fetch(fullUrl, { method: entityValue === 'pessoas' ? 'POST' : 'GET' }); // Usa POST para pessoas
             const json = await res.json();
 
             if (json.ok) {
-                // Delega a formatação dos dados para o módulo específico
+                // CORREÇÃO: Define o handler antes de usá-lo
+                const handler = window.appHandlers[entityValue];
+                if (!handler || typeof handler.format !== 'function') {
+                    throw new Error(`Handler para "${entityValue}" não encontrado ou inválido.`);
+                }
+
                 const { formattedData, columnsConfig } = handler.format(json.data || []);
-                window.currentExportData = formattedData; // Salva para as funções de exportação
+                window.currentExportData = formattedData;
 
                 initializeDataTable(formattedData, columnsConfig);
 
                 dataContainer.style.display = 'block';
                 outputDiv.innerHTML = '';
             } else {
-                throw new Error(json.error || 'Erro ao buscar dados do servidor.');
+                // Tenta pegar a mensagem de erro de dentro do objeto
+                const errorMessage = (typeof json.error === 'object') ? JSON.stringify(json.error) : json.error;
+                throw new Error(errorMessage || 'Erro ao buscar dados do servidor.');
             }
         } catch (error) {
-            outputDiv.innerHTML = `<pre class="text-danger">${error.message}</pre>`;
+            // Exibe o erro "Unexpected token '<'" como uma mensagem mais amigável
+            if (error.message.includes('Unexpected token')) {
+                outputDiv.innerHTML = `<pre class="text-danger">Ocorreu um erro inesperado no servidor. Verifique os logs do back-end.</pre>`;
+            } else {
+                outputDiv.innerHTML = `<pre class="text-danger">${error.message}</pre>`;
+            }
             dataContainer.style.display = 'none';
         }
     }
 
     // --- EVENT LISTENERS ---
-
     $('#btn-auth').addEventListener('click', () => window.location.href = '/auth/connect');
     $('#btn-disconnect').addEventListener('click', () => window.location.href = '/auth/disconnect');
     $('#btn-filtrar').addEventListener('click', fetchAndRender);

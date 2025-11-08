@@ -14,7 +14,7 @@ module.exports = {
             };
 
             // MUDANÇA CRÍTICA: Usando contaAzul.post() e enviando os parâmetros no corpo
-            const result = await contaAzul.post('/pessoa/busca', requestBody);
+            const result = await contaAzul.post('/v1/pessoa/busca', requestBody);
 
             await jsonManager.save('pessoas', result);
             return res.json({ ok: true, data: result.items, totalItems: result.totalItems });

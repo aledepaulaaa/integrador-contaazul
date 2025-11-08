@@ -15,7 +15,7 @@ module.exports = {
 
             // 1. Busca os dados com o endpoint correto.
             // A API de Vendas usa 'itens' (em português).
-            const result = await contaAzul.get('/venda/busca', { params: apiParams });
+            const result = await contaAzul.get('/v1/venda/busca', { params: apiParams });
 
             // 2. Salva o resultado.
             await jsonManager.save('vendas', result);
