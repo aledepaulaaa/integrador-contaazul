@@ -42,8 +42,9 @@ module.exports = {
                 filtro_rapido: req.query.status
             };
             const result = await contaAzul.get('/centro-de-custo', { params: apiParams });
+            console.log("Resultado do Centro de Custos: ", result)
             await jsonManager.save('centro_de_custos', result);
-            return res.json({ ok: true, data: result.items, totalItems: result.itens_totais });
+            return res.json({ ok: true, data: result, totalItems: result.itens_totais });
         } catch (err) {
             console.error('Erro ao buscar Centros de Custo:', err.response?.data || err.message);
             return res.status(err.response?.status || 500).json({ ok: false, error: err.message });
