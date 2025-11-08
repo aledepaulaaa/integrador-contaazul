@@ -1,5 +1,5 @@
 // ARQUIVO: /public/js/notas_fiscais.js
-window.appHandlers.notas = {
+const notasFiscaisHandler = {
     format: function (rawData) {
         const formattedData = rawData.map(nota => ({
             'Número': nota.numero,

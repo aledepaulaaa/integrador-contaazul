@@ -1,5 +1,5 @@
 // ARQUIVO: /public/js/pessoas.js
-window.appHandlers.pessoas = {
+const pessoasHandler = {
     format: function (rawData) {
         const formattedData = rawData.map(pessoa => {
             const endereco = pessoa.endereco || {};

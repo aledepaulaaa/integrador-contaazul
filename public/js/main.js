@@ -10,6 +10,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Armazena os dados formatados para uso nas funções de exportação
     window.currentExportData = [];
 
+    // --- INICIALIZAÇÃO CENTRALIZADA DOS MÓDULOS ---
+    // Cria o objeto global e o preenche com os handlers declarados nos outros arquivos.
+    // Isso resolve o erro de "condição de corrida".
+    window.appHandlers = {
+        vendas: vendasHandler,
+        pessoas: pessoasHandler,
+        produtos: produtosHandler,
+        notas: notasFiscaisHandler,
+        baixas: financeirosHandlers.baixas,
+        cobrancas: financeirosHandlers.cobrancas,
+        centro_de_custos: financeirosHandlers.centro_de_custos
+    };
+
     // --- FUNÇÕES DE UI (CONTROLE DE VISIBILIDADE DOS FILTROS) ---
 
     /**

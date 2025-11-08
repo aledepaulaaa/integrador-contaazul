@@ -1,5 +1,5 @@
 // ARQUIVO: /public/js/vendas.js
-window.appHandlers.vendas = {
+const vendasHandler = {
     format: function(rawData) {
         const formattedData = rawData.map(venda => {
             const clienteDetails = { Nome: venda.cliente?.nome, Email: venda.cliente?.email };

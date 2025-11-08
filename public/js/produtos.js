@@ -1,5 +1,5 @@
 // ARQUIVO: /public/js/produtos.js
-window.appHandlers.produtos = {
+const produtosHandler = {
     format: function (rawData) {
         const formattedData = rawData.map(produto => ({
             'Código': produto.codigo,
