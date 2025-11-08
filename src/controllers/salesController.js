@@ -1,11 +1,15 @@
-// ARQUIVO: src/controllers/salesController.js
+// ARQUIVO: /src/controllers/salesController.js
 const contaAzul = require('../utils/contaAzulAPI');
 const jsonManager = require('../models/jsonManager');
 
 module.exports = {
     searchSales: async (req, res) => {
         try {
-            // A API de Vendas espera 'data_inicio' e 'data_fim', que já são enviados pelo front-end.
+            // A API de Vendas precisa de um período para funcionar bem.
+            if (!req.query.data_inicio || !req.query.data_fim) {
+                return res.status(400).json({ ok: false, error: 'Por favor, selecione um período de data de início e fim para buscar as vendas.' });
+            }
+
             const apiParams = {
                 pagina: req.query.pagina || 1,
                 tamanho_pagina: 100,
@@ -13,15 +17,8 @@ module.exports = {
                 data_fim: req.query.data_fim
             };
 
-            // 1. Busca os dados com o endpoint correto.
-            // A API de Vendas usa 'itens' (em português).
-            const result = await contaAzul.get('/v1/venda/busca', { params: apiParams });
-
-            // 2. Salva o resultado.
+            const result = await contaAzul.get('/venda/busca', { params: apiParams });
             await jsonManager.save('vendas', result);
-
-            // 3. Retorna a lista de itens e o total para o front-end.
-            // A API de Vendas retorna 'total_itens'.
             return res.json({ ok: true, data: result.itens, totalItems: result.total_itens });
 
         } catch (err) {

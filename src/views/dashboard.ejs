@@ -1,18 +1,10 @@
-<!-- ARQUIVO: /src/views/dashboard.ejs (COMPLETO) -->
+<!-- ARQUIVO: /src/views/dashboard.ejs -->
 <div class="glass-card p-4">
     <h1 class="mb-4">Bem-vindo ao Integrador Conta Azul</h1>
 
     <!-- Filtros -->
     <div class="mb-4">
         <div class="row g-2 align-items-center">
-            <!-- Filtros de Data -->
-            <div class="col-12 col-md-3">
-                <input type="date" id="filter-startDate" class="form-control">
-            </div>
-            <div class="col-12 col-md-3">
-                <input type="date" id="filter-endDate" class="form-control">
-            </div>
-
             <!-- Seletor de Entidade Principal -->
             <div class="col-12 col-md-3">
                 <select id="filter-entity" class="form-select">
@@ -24,19 +16,40 @@
                 </select>
             </div>
 
-            <!-- Sub-seletor e Inputs de ID para Financeiro (inicialmente escondidos) -->
-            <div class="col-12 col-md-6" id="finance-wrapper" style="display: none;">
-                <div class="row g-2">
-                    <div class="col-12 col-md-4">
+            <!-- Container para Filtros Dinâmicos -->
+            <div class="col-12 col-md-6">
+                <div class="row g-2" id="dynamic-filters-container">
+                    <!-- Filtros de Data (visível por padrão) -->
+                    <div class="col-12 col-md-6 filter-control" id="date-filters">
+                        <input type="date" id="filter-startDate" class="form-control">
+                    </div>
+                    <div class="col-12 col-md-6 filter-control" id="date-filters-end">
+                        <input type="date" id="filter-endDate" class="form-control">
+                    </div>
+
+                    <!-- Filtros para Financeiro (escondido) -->
+                    <div class="col-12 col-md-4 filter-control" id="finance-subtype-wrapper" style="display: none;">
                         <select id="finance-subtype" class="form-select">
-                            <option value="baixas">Baixas</option>
-                            <option value="cobrancas">Cobranças</option>
+                            <option value="baixas">Baixas por ID</option>
+                            <option value="cobrancas">Cobranças por ID</option>
                             <option value="centro_de_custos">Centro de Custos</option>
                         </select>
                     </div>
-                    <div class="col-12 col-md-8">
-                        <input type="text" id="finance-id-filter" class="form-control"
-                            placeholder="...ou busque por ID da Parcela/Cobrança">
+                    <div class="col-12 col-md-8 filter-control" id="finance-id-wrapper" style="display: none;">
+                        <input type="text" id="finance-id-filter" class="form-control" placeholder="Digite o ID...">
+                    </div>
+
+                    <!-- Filtros para Centro de Custos (escondido) -->
+                    <div class="col-12 col-md-4 filter-control" id="cost-center-status-wrapper" style="display: none;">
+                        <select id="cost-center-status" class="form-select">
+                            <option value="ATIVO">Ativos</option>
+                            <option value="INATIVO">Inativos</option>
+                            <option value="TODOS">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-8 filter-control" id="cost-center-search-wrapper" style="display: none;">
+                        <input type="text" id="cost-center-search" class="form-control"
+                            placeholder="Buscar por nome ou código...">
                     </div>
                 </div>
             </div>
@@ -44,7 +57,7 @@
             <!-- Botões -->
             <div class="col-12 col-md-3">
                 <div class="d-grid gap-2 d-md-flex">
-                    <button id="btn-filtrar" class="btn btn-glass w-100">Filtrar</button>
+                    <button id="btn-buscar-dados" class="btn btn-glass w-100">Buscar Dados</button>
                     <button id="btn-mostrar-historico" class="btn btn-glass w-100">Histórico</button>
                 </div>
             </div>
