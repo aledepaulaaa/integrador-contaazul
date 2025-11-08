@@ -35,16 +35,26 @@ module.exports = {
 
     listCostCenters: async (req, res) => {
         try {
+            const statusFilter = req.query.status; // Pega o status do frontend
+
             const apiParams = {
                 pagina: req.query.pagina || 1,
                 tamanho_pagina: 100,
-                busca: req.query.busca,
-                filtro_rapido: req.query.status
+                busca: req.query.busca
             };
+
+            // Adiciona o filtro_rapido APENAS se ele foi enviado e o converte para MAIÚSCULAS
+            if (statusFilter) {
+                apiParams.filtro_rapido = statusFilter.toUpperCase();
+            }
+
             const result = await contaAzul.get('/centro-de-custo', { params: apiParams });
-            console.log("Resultado do Centro de Custos: ", result)
+            console.log("Resultado do Centro de Custos: ", result);
+
             await jsonManager.save('centro_de_custos', result);
-            return res.json({ ok: true, data: result, totalItems: result.itens_totais });
+
+            return res.json({ ok: true, data: result.itens, totalItems: result.itens_totais });
+
         } catch (err) {
             console.error('Erro ao buscar Centros de Custo:', err.response?.data || err.message);
             return res.status(err.response?.status || 500).json({ ok: false, error: err.message });
