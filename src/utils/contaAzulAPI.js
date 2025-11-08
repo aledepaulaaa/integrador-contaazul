@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const qs = require('querystring');
 
-const API_BASE = process.env.API_BASE_URL || 'https://api.contaazul.com';
+const API_BASE = process.env.API_BASE_URL || 'https://api-v2.contaazul.com/v1';
 const SESSION_FILE = path.join(__dirname, '..', '..', 'data', 'auth', 'session.json');
 const TOKEN_URL = process.env.AUTH_TOKEN_URL || 'https://auth.contaazul.com/oauth2/token';
 const CLIENT_ID = process.env.CLIENT_ID;

@@ -11,7 +11,7 @@ module.exports = {
                 tamanho_pagina: 100,
             };
 
-            const result = await contaAzul.post('/pessoa/busca', requestBody);
+            const result = await contaAzul.get('/pessoas', requestBody);
             await jsonManager.save('pessoas', result);
             return res.json({ ok: true, data: result.items, totalItems: result.totalItems });
 

@@ -8,6 +8,7 @@ module.exports = {
             const { id } = req.params;
             if (!id) return res.status(400).json({ ok: false, error: 'ID da Cobrança é obrigatório.' });
 
+            // Endpoint correto para buscar uma única cobrança por ID
             const result = await contaAzul.get(`/financeiro/eventos-financeiros/contas-a-receber/cobranca/${id}`);
             await jsonManager.save('cobrancas', result);
             return res.json({ ok: true, data: [result], totalItems: 1 });
@@ -22,6 +23,7 @@ module.exports = {
             const { id } = req.params;
             if (!id) return res.status(400).json({ ok: false, error: 'ID da Baixa é obrigatório.' });
 
+            // Endpoint correto para buscar uma única baixa por ID
             const result = await contaAzul.get(`/financeiro/eventos-financeiros/baixas/${id}`);
             await jsonManager.save('baixas', result);
             return res.json({ ok: true, data: [result], totalItems: 1 });
@@ -34,10 +36,10 @@ module.exports = {
     listCostCenters: async (req, res) => {
         try {
             const apiParams = {
-                pagina: 1,
+                pagina: req.query.pagina || 1,
                 tamanho_pagina: 100,
-                busca: req.query.busca, // Parâmetro do novo input de busca
-                filtro_rapido: req.query.status // Parâmetro do novo seletor de status
+                busca: req.query.busca,
+                filtro_rapido: req.query.status
             };
             const result = await contaAzul.get('/centro-de-custo', { params: apiParams });
             await jsonManager.save('centro_de_custos', result);

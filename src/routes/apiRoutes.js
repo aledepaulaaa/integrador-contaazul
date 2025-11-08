@@ -1,4 +1,4 @@
-// ARQUIVO: /src/routes/apiRoutes.js
+// ARQUIVO: /src/routes/apiRoutes.js (FINAL E CORRIGIDO)
 const express = require('express');
 const router = express.Router();
 
@@ -11,15 +11,14 @@ const financialsController = require('../controllers/financialsController');
 
 // --- ROTAS DE LISTAGEM / BUSCA ---
 router.get('/vendas', salesController.searchSales);
-router.post('/pessoas', peopleController.listPeople); // Corrigido para POST
+router.get('/pessoas', peopleController.listPeople); // Corrigido para GET
 router.get('/produtos', productsController.listProducts);
 router.get('/notas', invoicesController.listInvoices);
-router.get('/centro_de_custos', financialsController.listCostCenters);
 
-// --- ROTAS FINANCEIRAS (BUSCA POR ID) ---
-// Note que as rotas de listagem foram removidas e substituídas por estas
-router.get('/cobrancas/:id', financialsController.getChargeById);
-router.get('/baixas/:id', financialsController.getAcquittanceById);
+// --- ROTAS FINANCEIRAS ---
+router.get('/centro_de_custos', financialsController.listCostCenters);
+router.get('/cobrancas/:id', financialsController.getChargeById); // Mudança de nome para refletir a ação
+router.get('/baixas/:id', financialsController.getAcquittanceById); // Mudança de nome para refletir a ação
 
 // --- ROTAS DE HISTÓRICO ---
 router.get('/historico', historyController.getHistory);

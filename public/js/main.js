@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. FAZER A REQUISIÇÃO
         try {
             const fullUrl = `${apiPath}?${params.toString()}`;
-            const res = await fetch(fullUrl, { method });
+            const res = await fetch(fullUrl, { method: 'GET' });
             const json = await res.json();
 
             if (json.ok) {

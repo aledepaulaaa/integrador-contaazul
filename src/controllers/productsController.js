@@ -10,7 +10,7 @@ module.exports = {
                 tamanho_pagina: 100,
             };
 
-            const result = await contaAzul.get('/produto/busca', { params: apiParams });
+            const result = await contaAzul.get('/produtos', { params: apiParams });
             await jsonManager.save('produtos', result);
             return res.json({ ok: true, data: result.items, totalItems: result.totalItems });
 
