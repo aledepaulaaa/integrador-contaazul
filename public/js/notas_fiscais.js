@@ -1,11 +1,16 @@
 // ARQUIVO: /public/js/notas_fiscais.js
+
 const notasFiscaisHandler = {
     format: function (rawData) {
-        const formattedData = rawData.map(nota => ({
-            'Número': nota.numero || 'N/A', // Adicionado fallback
-            'Data Emissão': formatDateTime(nota.data_emissao || null), // Adicionado fallback (assumindo que formatDateTime aceita null)
+        // Garantir que rawData seja um array e que cada item não seja nulo antes de mapear.
+        const safeRawData = Array.isArray(rawData) ? rawData.filter(item => item) : [];
+
+        const formattedData = safeRawData.map(nota => ({
+            'Número': nota.numero || 'N/A',
+            'Data Emissão': formatDateTime(nota.data_emissao || null),
             'Valor': (nota.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-            'Status': nota.status || 'N/A', // Adicionado fallback
+            'Status': nota.status || 'N/A',
+            // Acesso à propriedade 'cliente' mais robusto.
             'Cliente': nota.cliente?.nome || 'N/A'
         }));
 

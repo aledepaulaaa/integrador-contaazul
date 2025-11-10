@@ -54,10 +54,14 @@ const financeirosHandlers = {
     // Centro de Custos
     centro_de_custos: {
         format: function (rawData) {
-            const formattedData = rawData.map(centro => ({
-                'Código': centro.codigo || 'N/A', // Adicionado fallback
-                'Nome': centro.nome || 'N/A', // Adicionado fallback
-                'Ativo': centro.ativo === true ? 'Sim' : 'Não' // Acesso direto, pois é boolean.
+            // Garantir que rawData seja um array e que cada item não seja nulo antes de mapear.
+            const safeRawData = Array.isArray(rawData) ? rawData.filter(item => item) : [];
+
+            const formattedData = safeRawData.map(centro => ({
+                'Código': centro.codigo || 'N/A',
+                'Nome': centro.nome || 'N/A',
+                // Acesso mais seguro para 'ativo'
+                'Ativo': (typeof centro.ativo === 'boolean' ? (centro.ativo ? 'Sim' : 'Não') : 'N/A')
             }));
 
             const columnsConfig = Object.keys(formattedData[0]).map(header => ({ data: header, title: header }));
