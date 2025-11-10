@@ -55,9 +55,9 @@ const financeirosHandlers = {
     centro_de_custos: {
         format: function (rawData) {
             const formattedData = rawData.map(centro => ({
-                'Código': centro.codigo,
-                'Nome': centro.nome,
-                'Ativo': centro.ativo ? 'Sim' : 'Não'
+                'Código': centro.codigo || 'N/A', // Adicionado fallback
+                'Nome': centro.nome || 'N/A', // Adicionado fallback
+                'Ativo': centro.ativo === true ? 'Sim' : 'Não' // Acesso direto, pois é boolean.
             }));
 
             const columnsConfig = Object.keys(formattedData[0]).map(header => ({ data: header, title: header }));

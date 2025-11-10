@@ -53,7 +53,11 @@ module.exports = {
 
             await jsonManager.save('centro_de_custos', result);
 
-            return res.json({ ok: true, data: result.itens, totalItems: result.itens_totais });
+            return res.json({ 
+                ok: true, 
+                data: result.itens || [], // Garante que 'data' seja sempre um array (ou vazio)
+                totalItems: result.itens_totais || 0 // Garante que 'totalItems' seja sempre um número (ou 0)
+            });
 
         } catch (err) {
             console.error('Erro ao buscar Centros de Custo:', err.response?.data || err.message);

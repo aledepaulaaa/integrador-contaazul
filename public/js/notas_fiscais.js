@@ -2,10 +2,10 @@
 const notasFiscaisHandler = {
     format: function (rawData) {
         const formattedData = rawData.map(nota => ({
-            'Número': nota.numero,
-            'Data Emissão': formatDateTime(nota.data_emissao),
+            'Número': nota.numero || 'N/A', // Adicionado fallback
+            'Data Emissão': formatDateTime(nota.data_emissao || null), // Adicionado fallback (assumindo que formatDateTime aceita null)
             'Valor': (nota.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-            'Status': nota.status,
+            'Status': nota.status || 'N/A', // Adicionado fallback
             'Cliente': nota.cliente?.nome || 'N/A'
         }));
 
