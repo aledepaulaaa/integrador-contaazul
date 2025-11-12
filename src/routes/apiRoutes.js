@@ -22,6 +22,7 @@ router.get('/baixas/:id', financialsController.getAcquittanceById); // Mudança 
 
 // --- ROTAS DE HISTÓRICO ---
 router.get('/historico', historyController.getHistory);
+router.get('/historico/:type/:filename', historyController.getHistoryFile);
 router.delete('/historico/:type/:filename', historyController.deleteHistoryFile);
 
 module.exports = router;

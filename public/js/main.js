@@ -1,4 +1,10 @@
 // ARQUIVO: /public/js/main.js
+
+// Armazena a instância do Modal de Impressão para ser gerenciada
+let printModalInstance = null;
+// Armazena os dados brutos da API (resposta original) para uso em modais e impressões
+window.rawApiData = {};
+
 document.addEventListener('DOMContentLoaded', () => {
     // Helper para selecionar elementos
     const $ = (s) => document.querySelector(s);
@@ -7,12 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.appHandlers = {};
     // Armazena a instância do DataTables para ser gerenciada
     let dataTableInstance = null;
-    // Armazena os dados formatados para uso nas funções de exportação
+    // Armazena os dados já formatados para uso nas funções de exportação
     window.currentExportData = [];
 
     // --- INICIALIZAÇÃO CENTRALIZADA DOS MÓDULOS ---
-    // Cria o objeto global e o preenche com os handlers declarados nos outros arquivos.
-    // Isso resolve o erro de "condição de corrida".
     window.appHandlers = {
         vendas: vendasHandler,
         pessoas: pessoasHandler,
@@ -24,46 +28,32 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- FUNÇÕES DE UI (CONTROLE DE VISIBILIDADE DOS FILTROS) ---
-
-    /**
-     * Controla quais filtros são exibidos na tela com base na seleção da entidade.
-     */
     function updateVisibleFilters() {
         const entity = $('#filter-entity').value;
         const financeSubtype = $('#finance-subtype').value;
-
-        // Esconde todos os containers de filtros dinâmicos
         document.querySelectorAll('#dynamic-filters-container .filter-control').forEach(el => el.style.display = 'none');
-
         if (entity === 'financeiro') {
             $('#finance-subtype-wrapper').style.display = 'flex';
             if (financeSubtype === 'centro_de_custos') {
                 $('#cost-center-status-wrapper').style.display = 'flex';
                 $('#cost-center-search-wrapper').style.display = 'flex';
-            } else { // Baixas ou Cobranças por ID
+            } else {
                 $('#finance-id-wrapper').style.display = 'flex';
             }
         } else if (entity === 'vendas' || entity === 'notas') {
             $('#date-filters').style.display = 'flex';
             $('#date-filters-end').style.display = 'flex';
         }
-        // Para Pessoas e Produtos, nenhum filtro extra é exibido por padrão.
     }
 
     // --- LÓGICA DE BUSCA DE DADOS ---
-
-    /**
-     * Função principal que constrói a requisição, busca os dados e os renderiza.
-     */
     async function fetchAndRender() {
         let entityValue = $('#filter-entity').value;
         const outputDiv = $('#output');
         const dataContainer = $('#data-container');
         let apiPath = '';
         const params = new URLSearchParams();
-        let method = 'GET';
 
-        // 1. CONSTRUIR A ROTA E OS PARÂMETROS
         if (entityValue === 'financeiro') {
             entityValue = $('#finance-subtype').value;
             const financeId = $('#finance-id-filter').value.trim();
@@ -71,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 apiPath = `/api/centro_de_custos`;
                 params.append('busca', $('#cost-center-search').value);
                 params.append('status', $('#cost-center-status').value);
-            } else { // Baixas ou Cobranças por ID
+            } else {
                 if (!financeId) return alert('Por favor, insira um ID para a busca.');
                 const endpoint = (entityValue === 'baixas') ? 'baixa' : 'cobranca';
                 apiPath = `/api/${endpoint}/${financeId}`;
@@ -82,25 +72,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 params.append('data_inicio', $('#filter-startDate').value);
                 params.append('data_fim', $('#filter-endDate').value);
             }
-            if (entityValue === 'pessoas') {
-                method = 'POST';
-            }
         }
 
         outputDiv.innerHTML = '<p class="text-center">Buscando dados...</p>';
         dataContainer.style.display = 'none';
 
-        // 2. FAZER A REQUISIÇÃO
         try {
             const fullUrl = `${apiPath}?${params.toString()}`;
             const res = await fetch(fullUrl, { method: 'GET' });
             const json = await res.json();
 
             if (json.ok) {
-                // 3. ROTEAMENTO, FORMATAÇÃO E RENDERIZAÇÃO
+                window.rawApiData = {}; // Limpa os dados brutos antigos
                 const handler = window.appHandlers[entityValue];
                 if (!handler) throw new Error(`Handler para "${entityValue}" não implementado.`);
-
                 const { formattedData, columnsConfig } = handler.format(json.data || []);
                 window.currentExportData = formattedData;
                 initializeDataTable(formattedData, columnsConfig);
@@ -115,20 +100,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- FUNÇÃO CENTRAL DE INICIALIZAÇÃO DA TABELA (DATATABLES) ---
-
     function initializeDataTable(data, columnsConfig) {
         const tableElement = $('#interactive-table');
         const entityName = $('#filter-entity').selectedOptions[0].text;
-
         if (!data || data.length === 0) {
             $('#data-container').style.display = 'none';
             $('#output').innerHTML = `<p class="text-center p-3">Nenhum dado de "${entityName}" encontrado.</p>`;
             return;
         }
-
         if (dataTableInstance) dataTableInstance.destroy();
         tableElement.innerHTML = '';
-
         dataTableInstance = new DataTable(tableElement, {
             data: data,
             columns: columnsConfig,
@@ -142,38 +123,59 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- EVENT LISTENERS ---
+    // --- LÓGICA DE IMPRESSÃO ---
+    function showPrintModal(data, type) {
+        const modalTitle = $('#print-modal-title');
+        const modalBody = $('#print-modal-body');
+        const confirmPrintBtn = $('#btn-confirm-print');
+        let htmlContent = '';
+        if (type === 'condicional') {
+            modalTitle.textContent = 'Impressão de Venda Condicional';
+            htmlContent = PrintHandler.generateCondicionalHTML(data);
+        } else {
+            modalTitle.textContent = 'Impressão de Nota Promissória';
+            htmlContent = PrintHandler.generatePromissoriaHTML(data);
+        }
+        modalBody.innerHTML = htmlContent;
+        confirmPrintBtn.onclick = () => handlePrinting(modalBody.innerHTML);
+        printModalInstance.show();
+    }
 
+    function handlePrinting(content) {
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`<html><head><title>Imprimir Documento</title><style>body{font-family:monospace;margin:0;}.print-preview{margin:0;white-space:pre-wrap;}@media print{body{-webkit-print-color-adjust:exact;}}</style></head><body>${content}</body></html>`);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
+    }
+
+    // --- EVENT LISTENERS ---
     $('#btn-auth').addEventListener('click', () => window.location.href = '/auth/connect');
     $('#btn-disconnect').addEventListener('click', () => window.location.href = '/auth/disconnect');
     $('#btn-buscar-dados').addEventListener('click', fetchAndRender);
-
-    // Listeners que controlam a UI dinâmica de filtros
     $('#filter-entity').addEventListener('change', updateVisibleFilters);
     $('#finance-subtype').addEventListener('change', updateVisibleFilters);
 
-    // Listener para o Histórico
     $('#btn-mostrar-historico').addEventListener('click', async () => {
         const historyModal = new bootstrap.Modal($('#history-modal'));
         const modalBody = $('#history-modal-body');
         modalBody.innerHTML = '<p class="text-center">Carregando histórico...</p>';
         historyModal.show();
-
         try {
             const res = await fetch('/api/historico');
             const json = await res.json();
             if (!json.ok || !json.list) throw new Error('Não foi possível carregar o histórico.');
-
             let historyHtml = '';
             for (const [category, files] of Object.entries(json.list)) {
                 if (category === 'auth' || files.length === 0) continue;
-
                 const fileItems = files.map(file => `
                     <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent text-white">
-                        <span>${file.replace('.json', '')}</span>
-                        <button class="btn btn-sm btn-outline-danger btn-delete-history" data-type="${category}" data-filename="${file}">Excluir</button>
+                        <a href="#" class="text-white btn-view-history" data-type="${category}" data-filename="${file}">${file}</a>
+                        <button class="btn btn-sm btn-outline-danger btn-delete-history" data-type="${category}" data-filename="${file}.json">Excluir</button>
                     </li>`).join('');
-
                 historyHtml += `
                     <div class="accordion-item">
                         <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${category}">${category.charAt(0).toUpperCase() + category.slice(1)} (${files.length})</button></h2>
@@ -186,26 +188,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listener para deleção de arquivos do histórico (usando delegação de evento)
+    // --- DELEGAÇÃO DE EVENTOS GERAL ---
     document.body.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('btn-delete-history')) {
-            const button = e.target;
-            const { type, filename } = button.dataset;
+        const target = e.target;
+        // Botão para visualizar dados do histórico
+        if (target.classList.contains('btn-view-history')) {
+            e.preventDefault();
+            const { type, filename } = target.dataset;
+            const historyModal = bootstrap.Modal.getInstance($('#history-modal'));
+            try {
+                const res = await fetch(`/api/historico/${type}/${filename}`);
+                const json = await res.json();
+                if (!json.ok) throw new Error(json.error || 'Não foi possível carregar os dados.');
+                historyModal.hide();
+                const handler = window.appHandlers[type];
+                if (!handler) throw new Error(`Handler para "${type}" não implementado.`);
+                const dataToFormat = (json.data && json.data.itens) ? json.data.itens : json.data;
+                const { formattedData, columnsConfig } = handler.format(dataToFormat);
+                window.currentExportData = formattedData;
+                initializeDataTable(formattedData, columnsConfig);
+                $('#data-container').style.display = 'block';
+                $('#output').innerHTML = `<div class="alert alert-info">Exibindo dados do histórico: ${filename}</div>`;
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+        // Botão para deletar arquivo do histórico
+        if (target.classList.contains('btn-delete-history')) {
+            const { type, filename } = target.dataset;
             if (confirm(`Tem certeza que deseja excluir o arquivo ${filename} da categoria ${type}?`)) {
                 try {
                     const res = await fetch(`/api/historico/${type}/${filename}`, { method: 'DELETE' });
                     const json = await res.json();
-                    if (json.ok) button.closest('li').remove();
+                    if (json.ok) target.closest('li').remove();
                     else throw new Error(json.error || 'Erro ao excluir arquivo.');
                 } catch (error) {
                     alert(error.message);
                 }
             }
         }
+        // Botão de impressão na tabela
+        if (target.classList.contains('btn-print')) {
+            const { id, type, entity } = target.dataset;
+            const dataToPrint = window.rawApiData[id];
+            if (entity === 'pessoas') {
+                alert('Impressão a partir de Pessoas ainda não implementada.');
+                return;
+            }
+            if (!dataToPrint) return alert('Erro: Dados para impressão não encontrados.');
+            showPrintModal(dataToPrint, type);
+        }
     });
 
     // --- FUNÇÕES E LISTENERS DE EXPORTAÇÃO ---
-
     function getExportData() {
         return window.currentExportData.map(row => {
             const cleanRow = { ...row };
@@ -219,7 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return cleanRow;
         });
     }
-
     $('#btn-export-pdf').addEventListener('click', () => {
         if (!window.currentExportData || window.currentExportData.length === 0) return alert('Não há dados para exportar.');
         const exportData = getExportData();
@@ -230,7 +264,6 @@ document.addEventListener('DOMContentLoaded', () => {
         doc.autoTable({ head: [headers], body: body, styles: { fontSize: 8 }, headStyles: { fillColor: [15, 23, 36] } });
         doc.save(`relatorio_${$('#filter-entity').value}.pdf`);
     });
-
     $('#btn-export-excel').addEventListener('click', () => {
         if (!window.currentExportData || window.currentExportData.length === 0) return alert('Não há dados para exportar.');
         const exportData = getExportData();
@@ -241,6 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- INICIALIZAÇÃO ---
-    // Garante que os filtros corretos sejam exibidos ao carregar a página
+    printModalInstance = new bootstrap.Modal($('#print-modal'));
     updateVisibleFilters();
 });

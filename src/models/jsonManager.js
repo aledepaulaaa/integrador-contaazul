@@ -3,9 +3,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
 
-
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
-
 
 async function save(type, payload) {
     const id = uuidv4();
