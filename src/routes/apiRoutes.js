@@ -11,6 +11,8 @@ const financialsController = require('../controllers/financialsController');
 
 // --- ROTAS DE LISTAGEM / BUSCA ---
 router.get('/vendas', salesController.searchSales);
+router.get('/vendas/cliente/:clienteId', salesController.getLatestSaleByClientId)
+
 router.get('/pessoas', peopleController.listPeople); // Corrigido para GET
 router.get('/produtos', productsController.listProducts);
 router.get('/notas', invoicesController.listInvoices);

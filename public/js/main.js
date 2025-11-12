@@ -230,13 +230,30 @@ document.addEventListener('DOMContentLoaded', () => {
         // Botão de impressão na tabela
         if (target.classList.contains('btn-print')) {
             const { id, type, entity } = target.dataset;
-            const dataToPrint = window.rawApiData[id];
-            if (entity === 'pessoas') {
-                alert('Impressão a partir de Pessoas ainda não implementada.');
-                return;
+
+            // Se for uma venda, os dados já estão prontos
+            if (entity === 'vendas') {
+                const dataToPrint = window.rawApiData[id];
+                if (!dataToPrint) return alert('Erro: Dados da venda não encontrados.');
+                showPrintModal(dataToPrint, type);
             }
-            if (!dataToPrint) return alert('Erro: Dados para impressão não encontrados.');
-            showPrintModal(dataToPrint, type);
+            // Se for uma pessoa, busca a venda mais recente antes de imprimir
+            else if (entity === 'pessoas') {
+                target.disabled = true;
+                target.textContent = 'Buscando...';
+                try {
+                    const res = await fetch(`/api/vendas/cliente/${id}`);
+                    const json = await res.json();
+                    if (!json.ok) throw new Error(json.error);
+                    // Agora temos os dados da venda e podemos usar a mesma função
+                    showPrintModal(json.data, type);
+                } catch (error) {
+                    alert(`Erro ao buscar venda: ${error.message}`);
+                } finally {
+                    target.disabled = false;
+                    target.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+                }
+            }
         }
     });
 
