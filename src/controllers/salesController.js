@@ -5,10 +5,11 @@ const jsonManager = require('../models/jsonManager');
 module.exports = {
     searchSales: async (req, res) => {
         try {
-            // A API de Vendas precisa de um período para funcionar bem.
-            if (!req.query.data_inicio || !req.query.data_fim) {
-                return res.status(400).json({ ok: false, error: 'Por favor, selecione um período de data de início e fim para buscar as vendas.' });
-            }
+            // Podemos verificar se o usuário adicionou filtro ou não, basta descomentar o bloco da verificação abaixo
+            
+            // if (!req.query.data_inicio || !req.query.data_fim) {
+            //     return res.status(400).json({ ok: false, error: 'Por favor, selecione um período de data de início e fim para buscar as vendas.' });
+            // }
 
             const apiParams = {
                 pagina: req.query.pagina || 1,
