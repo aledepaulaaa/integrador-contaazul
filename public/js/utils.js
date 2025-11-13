@@ -48,3 +48,19 @@ function createAccordion(id, buttonText, details) {
             </div>
         `;
 }
+
+/**
+ * *** NOVA FUNÇÃO ADICIONADA ***
+ * Formata uma data do formato ISO (YYYY-MM-DD) para o padrão brasileiro (DD/MM/YYYY).
+ * @param {string} isoDateString - A data no formato YYYY-MM-DD vinda do input de data.
+ * @returns {string} - A data formatada.
+ */
+function formatISODate(isoDateString) {
+    if (!isoDateString || typeof isoDateString !== 'string') return 'N/A';
+
+    const parts = isoDateString.split('-');
+    if (parts.length !== 3) return isoDateString; // Retorna o original se não for o formato esperado
+
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+}
