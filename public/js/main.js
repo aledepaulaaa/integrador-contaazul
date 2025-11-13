@@ -1,7 +1,8 @@
 // ARQUIVO: /public/js/main.js
+
 let printModalInstance = null;
-let editModalInstance = null; // Nova instância para o modal de edição
-window.rawApiData = {};
+let editModalInstance = null; // Instância para o modal de edição
+window.rawApiData = {}; // Armazena os dados brutos da API para uso nos modais
 
 document.addEventListener('DOMContentLoaded', () => {
     const $ = (s) => document.querySelector(s);
@@ -18,25 +19,55 @@ document.addEventListener('DOMContentLoaded', () => {
         centro_de_custos: financeirosHandlers.centro_de_custos
     };
 
+    // --- FUNÇÕES DE UI (LÓGICA RESTAURADA E COMPLETA) ---
     function updateVisibleFilters() {
         const entity = $('#filter-entity').value;
+        const financeSubtype = $('#finance-subtype')?.value; // Adicionado '?' para segurança
+
         document.querySelectorAll('#dynamic-filters-container .filter-control').forEach(el => el.style.display = 'none');
-        if (entity === 'vendas' || entity === 'notas') {
+
+        if (entity === 'financeiro') {
+            $('#finance-subtype-wrapper').style.display = 'flex';
+            if (financeSubtype === 'centro_de_custos') {
+                $('#cost-center-status-wrapper').style.display = 'flex';
+                $('#cost-center-search-wrapper').style.display = 'flex';
+            } else {
+                $('#finance-id-wrapper').style.display = 'flex';
+            }
+        } else if (entity === 'vendas' || entity === 'notas') {
             $('#date-filters').style.display = 'flex';
             $('#date-filters-end').style.display = 'flex';
         }
     }
 
+    // --- LÓGICA DE BUSCA DE DADOS (VERSÃO ANTERIOR E ESTÁVEL) ---
     async function fetchAndRender() {
         let entityValue = $('#filter-entity').value;
         const outputDiv = $('#output');
         const dataContainer = $('#data-container');
-        let apiPath = `/api/${entityValue}`;
+        let apiPath = '';
         const params = new URLSearchParams();
-        if (entityValue === 'vendas' || entityValue === 'notas') {
-            params.append('data_inicio', $('#filter-startDate').value);
-            params.append('data_fim', $('#filter-endDate').value);
+
+        if (entityValue === 'financeiro') {
+            entityValue = $('#finance-subtype').value;
+            const financeId = $('#finance-id-filter').value.trim();
+            if (entityValue === 'centro_de_custos') {
+                apiPath = `/api/centro_de_custos`;
+                params.append('busca', $('#cost-center-search').value);
+                params.append('status', $('#cost-center-status').value);
+            } else {
+                if (!financeId) return alert('Por favor, insira um ID para a busca.');
+                const endpoint = (entityValue === 'baixas') ? 'baixa' : 'cobranca';
+                apiPath = `/api/${endpoint}/${financeId}`;
+            }
+        } else {
+            apiPath = `/api/${entityValue}`;
+            if (entityValue === 'vendas' || entityValue === 'notas') {
+                params.append('data_inicio', $('#filter-startDate').value);
+                params.append('data_fim', $('#filter-endDate').value);
+            }
         }
+
         outputDiv.innerHTML = '<p class="text-center">Buscando dados...</p>';
         dataContainer.style.display = 'none';
         try {
@@ -93,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const isCondicional = type === 'condicional';
         $('#edit-modal-title').textContent = `Editar ${isCondicional ? 'Condicional' : 'Promissória'}`;
 
-        // Preenche os valores padrão
         $('#edit-header').value = isCondicional ? 'METTA CONTABILIDADE/STA BARBARA DO LESTE' : `METTA CONTABILIDADE\nCNPJ 20316861000190 IE ISENTO\nAV GERALDO MAGELA, 96, CENTRO\nSTA BARBARA DO LESTE/MG`;
         $('#edit-footer').value = isCondicional ? `Reconheço que as mercadorias acima descritas\nestão sob minha responsabilidade e se não forem\ndevolvidas dentro do prazo estipulado,\nesta nota condicional será convertida em venda.` : `Reconheço (emos) a exatidão desta duplicata de\nvenda mercantil/prestacao de serviços, na\nimportância acima que pagarei à METTA\nCONTABILIDADE, ou a sua ordem na praça e\nvencimentos indicados.`;
         $('#condicional-fields').style.display = isCondicional ? 'block' : 'none';
@@ -101,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
         $('#edit-modalidade').value = '';
         $('#edit-vencimento').value = data.data.split('T')[0];
 
-        // Define a ação do botão salvar
         $('#btn-save-and-print').onclick = () => {
             const edits = {
                 header: $('#edit-header').value,
@@ -124,11 +153,12 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
     }
 
-    // --- EVENT LISTENERS ---
+    // --- EVENT LISTENERS (VERSÃO ANTERIOR E ESTÁVEL) ---
     $('#btn-auth').addEventListener('click', () => window.location.href = '/auth/connect');
     $('#btn-disconnect').addEventListener('click', () => window.location.href = '/auth/disconnect');
     $('#btn-buscar-dados').addEventListener('click', fetchAndRender);
     $('#filter-entity').addEventListener('change', updateVisibleFilters);
+    $('#finance-subtype').addEventListener('change', updateVisibleFilters); // LISTENER RESTAURADO
 
     $('#btn-mostrar-historico').addEventListener('click', async () => {
         const historyModal = new bootstrap.Modal($('#history-modal'));
@@ -204,13 +234,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert(`Erro ao buscar venda: ${error.message}`);
                 } finally {
                     target.disabled = false;
-                    target.textContent = target.textContent.replace('...', '');
+                    // Restaura o texto original sem quebrar o HTML
+                    const originalText = isEdit ? (type === 'condicional' ? 'Editar Cond.' : 'Editar Promis.') : (type === 'condicional' ? 'Condicional' : 'Promissória');
+                    target.textContent = originalText;
                 }
             }
         }
     });
 
-    // --- FUNÇÕES E LISTENERS DE EXPORTAÇÃO ---
+    // --- FUNÇÕES E LISTENERS DE EXPORTAÇÃO (sem alterações) ---
     function getExportData() {
         return window.currentExportData.map(row => {
             const cleanRow = { ...row };
