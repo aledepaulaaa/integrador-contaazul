@@ -12,9 +12,13 @@ const vendasHandler = {
                 'Tipo': venda.tipo === 'SALE' ? 'Venda' : venda.tipo,
                 'Total': (venda.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
                 'Cliente': createAccordion(venda.id, venda.cliente?.nome || 'N/A', clienteDetails),
-                'Situação': venda.situacao?.descricao || 'N/A',
+                'Situação': venda.situacao?.nome || 'N/A',
                 'Ações': `
                     <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-success btn-edit" data-id="${venda.id}" data-type="condicional" data-entity="vendas">Editar Cond.</button>
+                        <button class="btn btn-sm btn-outline-success btn-edit" data-id="${venda.id}" data-type="promissoria" data-entity="vendas">Editar Promis.</button>
+                    </div>
+                    <div class="btn-group mt-1" role="group">
                         <button class="btn btn-sm btn-outline-info btn-print" data-id="${venda.id}" data-type="condicional" data-entity="vendas">Condicional</button>
                         <button class="btn btn-sm btn-outline-warning btn-print" data-id="${venda.id}" data-type="promissoria" data-entity="vendas">Promissória</button>
                     </div>

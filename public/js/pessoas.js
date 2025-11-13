@@ -23,6 +23,10 @@ const pessoasHandler = {
                 'Ativo': pessoa.ativo ? 'Sim' : 'Não',
                 'Ações': `
                     <div class="btn-group" role="group">
+                         <button class="btn btn-sm btn-outline-success btn-edit" data-id="${pessoa.id}" data-type="condicional" data-entity="pessoas">Editar Cond.</button>
+                        <button class="btn btn-sm btn-outline-success btn-edit" data-id="${pessoa.id}" data-type="promissoria" data-entity="pessoas">Editar Promis.</button>
+                    </div>
+                    <div class="btn-group mt-1" role="group">
                         <button class="btn btn-sm btn-outline-info btn-print" data-id="${pessoa.id}" data-type="condicional" data-entity="pessoas">Condicional</button>
                         <button class="btn btn-sm btn-outline-warning btn-print" data-id="${pessoa.id}" data-type="promissoria" data-entity="pessoas">Promissória</button>
                     </div>

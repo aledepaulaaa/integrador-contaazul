@@ -58,7 +58,7 @@
             <div class="col-12 col-md-3">
                 <div class="d-grid gap-2 d-md-flex">
                     <button id="btn-buscar-dados" class="btn btn-glass w-100">Buscar Dados</button>
-                    <button id="btn-mostrar-historico" class="btn btn-glass w-100">Histórico</button>
+                    <!-- <button id="btn-mostrar-historico" class="btn btn-glass w-100">Histórico</button> -->
                 </div>
             </div>
         </div>
@@ -113,6 +113,51 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" id="btn-confirm-print" class="btn btn-primary">Imprimir</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NOVO MODAL PARA EDIÇÃO ANTES DA IMPRESSÃO -->
+<div class="modal fade" id="edit-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title" id="edit-modal-title">Editar Documento</h5><button type="button"
+                    class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-form">
+                    <!-- Campos Comuns -->
+                    <div class="mb-3">
+                        <label for="edit-header" class="form-label">Cabeçalho</label>
+                        <textarea class="form-control" id="edit-header" rows="4"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-footer" class="form-label">Rodapé (Texto de Reconhecimento)</label>
+                        <textarea class="form-control" id="edit-footer" rows="4"></textarea>
+                    </div>
+
+                    <!-- Campos Específicos do Condicional -->
+                    <div id="condicional-fields">
+                        <div class="mb-3">
+                            <label for="edit-prazo" class="form-label">Prazo de Devolução</label>
+                            <input type="text" class="form-control" id="edit-prazo">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-modalidade" class="form-label">Modalidade</label>
+                            <input type="text" class="form-control" id="edit-modalidade">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-vencimento" class="form-label">Vencimento</label>
+                            <input type="date" class="form-control" id="edit-vencimento">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btn-save-and-print" class="btn btn-success">Salvar e Visualizar</button>
             </div>
         </div>
     </div>
