@@ -141,7 +141,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handlePrinting(content) {
         const printWindow = window.open('', '_blank');
-        printWindow.document.write(`<html><head><title>Imprimir</title><style>body{font-family:monospace;margin:0;}.print-preview{margin:0;white-space:pre-wrap;}@media print{body{-webkit-print-color-adjust:exact;}}</style></head><body>${content}</body></html>`);
+        // printWindow.document.write(`
+        //     <html>
+        //     <head>
+        //     <title>Imprimir</title>
+        //     <style>
+        //         body { 
+        //             font-family: 'Courier New', monospace; 
+        //             font-size: 15px; 
+        //             font-weight: bold; 
+        //             margin: 0; 
+        //             color: #000;
+        //         }
+        //         .print-preview {
+        //             margin:0;
+        //             white-space: pre-wrap;
+        //             line-height: 1.2;
+        //         }
+        //         @media print {
+        //             body { -webkit-print-color-adjust:exact; }
+        //             @page { margin: 0;  }
+        //         }
+        //     </style>
+        //     </head>
+        //     <body>${content}
+        //     </body>
+        //     </html>`
+        // );
+        const style = `
+            <style>
+                body { 
+                    font-family: 'Courier New', monospace; 
+                    font-size: 15px; 
+                    font-weight: bold; 
+                    margin: 0; 
+                    color: #000;
+                }
+                .print-preview { 
+                    margin: 0; 
+                    white-space: pre-wrap; 
+                    line-height: 1.2; /* Melhora o espaçamento entre linhas */
+                }
+                @media print {
+                    body { -webkit-print-color-adjust: exact; }
+                    @page { margin: 0; } /* Remove margens extras da impressora */
+                }
+            </style>
+        `;
+        printWindow.document.write(`<html><head><title>Imprimir</title>${style}</head><body>${content}</body></html>`);
         printWindow.document.close();
         printWindow.focus();
         setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
