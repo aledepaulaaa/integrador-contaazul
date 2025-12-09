@@ -8,6 +8,7 @@ const productsController = require('../controllers/productsController');
 const invoicesController = require('../controllers/invoicesController');
 const historyController = require('../controllers/historyController');
 const financialsController = require('../controllers/financialsController');
+const settingsController = require('../controllers/settingsController');
 
 // --- ROTAS DE LISTAGEM / BUSCA ---
 router.get('/vendas', salesController.searchSales);
@@ -26,5 +27,10 @@ router.get('/baixas/:id', financialsController.getAcquittanceById); // Mudança 
 router.get('/historico', historyController.getHistory);
 router.get('/historico/:type/:filename', historyController.getHistoryFile);
 router.delete('/historico/:type/:filename', historyController.deleteHistoryFile);
+
+// Rotas de Configuração de Impressão
+router.get('/settings/print', settingsController.getPrintSettings);
+router.post('/settings/print', settingsController.savePrintSettings);
+router.delete('/settings/print', settingsController.deletePrintSettings);
 
 module.exports = router;

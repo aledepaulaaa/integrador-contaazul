@@ -1,7 +1,6 @@
 // ARQUIVO: /public/js/pessoas.js
 const pessoasHandler = {
     format: function (rawData) {
-        // Guardamos os dados brutos
         window.rawApiData = window.rawApiData || {};
         rawData.forEach(pessoa => window.rawApiData[pessoa.id] = pessoa);
 
@@ -13,6 +12,24 @@ const pessoasHandler = {
                 Cidade: `${endereco.cidade || ''} - ${endereco.estado || ''}`,
                 CEP: endereco.cep
             };
+
+            const actionsHtml = `
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-info btn-print-row" 
+                            data-id="${pessoa.id}" 
+                            data-entity="pessoas" 
+                            data-type="condicional">
+                        Cond.
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning btn-print-row" 
+                            data-id="${pessoa.id}" 
+                            data-entity="pessoas" 
+                            data-type="promissoria">
+                        Prom.
+                    </button>
+                </div>
+            `;
+
             return {
                 'Nome': pessoa.nome,
                 'Email': pessoa.email,
@@ -21,12 +38,7 @@ const pessoasHandler = {
                 'Perfis': pessoa.perfis ? pessoa.perfis.join(', ') : 'N/A',
                 'Endereço': createAccordion(pessoa.id, `${endereco.logradouro || 'Endereço'}, ${endereco.numero || ''}`, enderecoDetails),
                 'Ativo': pessoa.ativo ? 'Sim' : 'Não',
-                'Ações': `
-                    <div class="btn-group" role="group">
-                         <button class="btn btn-sm btn-outline-success btn-edit" data-id="${pessoa.id}" data-type="condicional" data-entity="pessoas">Editar Cond.</button>
-                        <button class="btn btn-sm btn-outline-success btn-edit" data-id="${pessoa.id}" data-type="promissoria" data-entity="pessoas">Editar Promis.</button>
-                    </div>
-                `
+                'Ações': actionsHtml
             };
         });
 

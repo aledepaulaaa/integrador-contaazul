@@ -2,6 +2,20 @@
 <div class="glass-card p-4">
     <h1 class="mb-4">Bem-vindo ao Integrador Conta Azul</h1>
 
+    <div class="glass-card p-3 mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="m-0 text-white"><i class="bi bi-printer"></i> Configurações de Impressão</h5>
+            <div>
+                <button id="btn-config-settings" class="btn btn-primary">
+                    Cadastrar | Atualizar Configuração
+                </button>
+                <button id="btn-delete-settings" class="btn btn-outline-danger">
+                    Apagar Configuração
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Filtros -->
     <div class="mb-4">
         <div class="row g-2 align-items-center">
@@ -11,8 +25,6 @@
                     <option value="vendas">Vendas</option>
                     <option value="pessoas">Pessoas</option>
                     <option value="produtos">Produtos</option>
-                    <!-- <option value="notas">Notas Fiscais</option>
-                    <option value="financeiro">Financeiro</option> -->
                 </select>
             </div>
 
