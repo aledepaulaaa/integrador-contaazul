@@ -51,10 +51,8 @@ module.exports = {
         try {
             const { id } = req.params;
 
-            // A API V1 da Conta Azul para detalhes geralmente responde em /v1/sales/{id}
-            // Se sua base URL já tem /v1, usamos apenas /sales/${id}
             // Verifique se o seu 'contaAzulAPI' já tem o base URL configurado.
-            const response = await contaAzul.get(`/sales/${id}`);
+            const response = await contaAzul.get(`/venda/${id}`);
 
             return res.json({ ok: true, data: response.data });
         } catch (error) {
