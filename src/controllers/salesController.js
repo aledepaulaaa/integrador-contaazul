@@ -50,15 +50,25 @@ module.exports = {
     getById: async (req, res) => {
         try {
             const { id } = req.params;
-            console.log(`Buscando detalhes da venda ID: ${id}...`)
+            console.log(`[Backend] Buscando detalhes da venda ID: ${id}`);
 
+            // Rota confirmada pelo seu cURL
             const response = await contaAzul.get(`/venda/${id}`);
-            console.log("Venda detalhada: ", response.data);
 
-            return res.json({ ok: true, data: response.data });
+            // CORREÇÃO: Garante que pegamos os dados onde quer que eles estejam
+            // Algumas configs do axios retornam data dentro de data, outras direto.
+            const vendaData = response.data || response;
+
+            if (!vendaData) {
+                throw new Error('A API retornou dados vazios.');
+            }
+
+            console.log("[Backend] Sucesso. Cliente:", vendaData.cliente?.nome);
+
+            return res.json({ ok: true, data: vendaData });
         } catch (error) {
-            console.error('Erro ao buscar venda detalhada:', error.response?.data || error.message);
-            return res.status(500).json({ ok: false, error: 'Falha ao buscar detalhes da venda.' });
+            console.error('[Backend] Erro ao buscar venda detalhada:', error.response?.data || error.message);
+            return res.status(500).json({ ok: false, error: 'Falha ao buscar detalhes da venda na Conta Azul.' });
         }
     }
 };

@@ -210,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function prepareAndShowPrintModal(dataId, printType, entityType) {
         let dataToPrint = null;
 
+        // Feedback visual no botão
         const btn = document.querySelector(`.btn-print-row[data-id="${dataId}"][data-type="${printType}"]`);
         const originalContent = btn ? btn.innerHTML : '';
         if (btn) {
@@ -219,23 +220,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             if (entityType === 'vendas') {
-                // FORÇA A BUSCA DE DETALHES NA API
+                // Busca Detalhada Obrigatória
                 try {
-                    console.log('Buscando detalhes via API...');
+                    console.log('Solicitando detalhes da venda ID:', dataId);
                     const res = await fetch(`/api/vendas/${dataId}`);
+
+                    if (!res.ok) throw new Error(`Erro API: ${res.status}`);
+
                     const json = await res.json();
 
                     if (json.ok && json.data) {
                         dataToPrint = json.data;
-                        console.log('Detalhes carregados com sucesso. Itens:', dataToPrint.items || dataToPrint.itens);
+                        // Validação extra: se itens vier vazio, tenta usar o resumo
+                        if (!dataToPrint.itens && window.rawApiData[dataId]) {
+                            console.warn('Itens vazios no detalhe, tentando mesclar com resumo.');
+                            dataToPrint = { ...window.rawApiData[dataId], ...dataToPrint };
+                        }
                     } else {
-                        throw new Error('JSON inválido ou sem dados');
+                        throw new Error(json.error || 'Dados inválidos');
                     }
                 } catch (err) {
-                    console.error('Falha ao buscar detalhes:', err);
-                    alert('Não foi possível carregar os itens da venda. Verifique o console.');
-                    // Não faz fallback para rawApiData para não imprimir sem produtos
-                    throw new Error('Falha ao carregar itens da venda.');
+                    console.error('Falha no fetch detalhado:', err);
+                    throw new Error('Não foi possível carregar os produtos da venda. Tente novamente.');
                 }
             } else if (entityType === 'pessoas') {
                 const res = await fetch(`/api/vendas/cliente/${dataId}`);
@@ -243,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (json.ok) dataToPrint = json.data;
             }
 
-            if (!dataToPrint) throw new Error('Dados vazios.');
+            if (!dataToPrint) throw new Error('Dados não encontrados.');
 
             // Busca configurações
             let configToUse = {};
@@ -285,9 +291,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const style = `
             <style>
                 body { 
-                    /* Courier New é essencial para o alinhamento das colunas com espaços */
-                    font-family: 'Courier New', monospace; 
-                    font-size: 17px; 
+                    font-family: 'Courier New', monospace; /* Fonte monoespaçada obrigatória para alinhar colunas */
+                    font-size: 17px; /* Tamanho solicitado */
                     font-weight: bold;
                     margin: 0; 
                     padding: 5px;
@@ -295,12 +300,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     background-color: #fff;
                 }
                 
-                /* Garante que o pre respeite as quebras de linha e espaços */
                 .print-preview { 
                     margin: 0; 
                     white-space: pre-wrap; 
-                    line-height: 1.2; 
-                    text-align: left; /* Garante alinhamento à esquerda */
+                    line-height: 1.1; /* Espaçamento ligeiramente menor para economizar papel */
+                    text-align: left; 
+                    width: 100%;
                 }
 
                 @media print {

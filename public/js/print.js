@@ -85,135 +85,108 @@
 // ARQUIVO: /public/js/print.js
 
 const PrintHandler = {
-    formatCurrency: (val) => Number(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+    // Formata valor monetário
+    formatMoney: (val) => Number(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+
+    // Auxiliar para alinhar texto (colunas)
+    pad: (str, len) => (str || '').toString().substring(0, len).padEnd(len, ' '),
+    padLeft: (str, len) => (str || '').toString().substring(0, len).padStart(len, ' '),
 
     generateCondicionalHTML: function (data, settings = {}) {
         const config = settings || {};
-        
-        const header = config.header || 'METTA CONTABILIDADE/STA BARBARA DO LESTE';
-        const footer = config.footer || `Reconheço que as mercadorias acima descritas\nestão sob minha responsabilidade...`;
-        
-        const prazo = config.prazo ? `PRAZO DE DEVOLUCAO: ${config.prazo}` : 'PRAZO DE DEVOLUCAO: A COMBINAR';
+
+        // --- DADOS CABEÇALHO ---
+        const header = config.header || 'METTA CONTABILIDADE\nSTA BARBARA DO LESTE';
+        const footer = config.footer || '';
+        const prazo = config.prazo ? `PRAZO: ${config.prazo}` : '';
         const modalidade = config.modalidade ? `MODALIDADE: ${config.modalidade}` : '';
-        const vencimento = config.vencimento ? formatISODate(config.vencimento) : formatDateTime(data.data || new Date().toISOString());
+        const docNum = data.numero || data.id_legado || '---';
+        const dataEmissao = formatDateTime(data.data);
 
-        // --- LÓGICA DE ITENS ---
-        let itensBlock = '';
-        let lista = [];
+        // --- DADOS CLIENTE ---
+        const cliNome = (data.cliente?.nome || 'CLIENTE NÃO IDENTIFICADO').toUpperCase();
+        const cliDoc = data.cliente?.documento || data.cliente?.cpf_cnpj || '';
+        const end = data.cliente?.endereco || {};
+        const endStr = `${end.logradouro || ''}, ${end.numero || ''} - ${end.bairro || ''}\n${end.cidade || ''}-${end.estado || ''}`;
 
-        // 1. Tenta encontrar o array de itens nas variações possíveis da API
-        if (Array.isArray(data.items)) lista = data.items;       // Padrão V1 English
-        else if (Array.isArray(data.itens)) lista = data.itens;  // Padrão V1 Portuguese
-        else if (data.sale && Array.isArray(data.sale.items)) lista = data.sale.items; // Algumas respostas aninhadas
+        // --- DADOS ITENS (Igual ao PDF: Qt, Produto, Unit, Subtotal) ---
+        let itensTxt = '';
+        // A API /venda/{id} retorna 'itens' (português)
+        const listaItens = data.itens || [];
 
-        if (lista.length > 0 && typeof lista[0] === 'object') {
-            itensBlock = lista.map(item => {
-                // 2. Mapeamento profundo das propriedades do item
-                // Conta Azul pode retornar: item.description OU item.item.name OU item.descricao
-                let nomeProduto = 'PRODUTO SEM NOME';
-                
-                if (item.description) nomeProduto = item.description;
-                else if (item.item && item.item.name) nomeProduto = item.item.name;
-                else if (item.descricao) nomeProduto = item.descricao;
-                else if (item.name) nomeProduto = item.name;
+        if (listaItens.length > 0) {
+            itensTxt = listaItens.map(item => {
+                const qtd = (item.quantidade || 1).toString();
+                const nome = (item.descricao || item.item?.nome || 'PRODUTO').toUpperCase();
+                const unit = this.formatMoney(item.valor_unitario || item.valor);
+                const sub = this.formatMoney(item.valor_total || item.total);
 
-                const qtd = item.quantity || item.quantidade || 1;
-                const valor = item.value || item.unit_value || item.valor_unitario || item.valor || 0;
-                const total = item.total || (qtd * valor);
-
-                // Layout alinhado à esquerda (Retro Style)
-                return `${nomeProduto.toUpperCase()}\n` +
-                       `   ${qtd} X ${PrintHandler.formatCurrency(valor)} = R$ ${PrintHandler.formatCurrency(total)}`;
-            }).join('\n---------------------------------------------------------------\n');
+                // Formato de 2 linhas para caber no papel 80mm/58mm
+                // 1   CAMISA GOLA POLO
+                //     109,90                  109,90
+                return `${this.pad(qtd, 3)} ${nome}\n` +
+                    `    UNIT: ${this.pad(unit, 10)}    TOTAL: ${this.padLeft(sub, 10)}`;
+            }).join('\n- - - - - - - - - - - - - - - - - - - - - -\n');
         } else {
-            // Se chegou aqui, o array está vazio ou não é um array
-            itensBlock = `            LISTA DE ITENS INDISPONÍVEL\n            (API retornou: ${JSON.stringify(data.itens || data.items || 'vazio').substring(0, 50)}...)`;
+            itensTxt = '    DETALHES DOS ITENS NÃO DISPONÍVEIS';
         }
 
-        const totalFinal = data.total || 0;
+        // --- DADOS PAGAMENTO (Igual ao PDF: Nº, Venc, Valor) ---
+        let pagtosTxt = '';
+        const parcelas = data.parcelas || [];
+
+        if (parcelas.length > 0) {
+            pagtosTxt = parcelas.map(p => {
+                const num = (p.numero || '1').toString() + 'º';
+                const venc = formatISODate(p.data_vencimento);
+                const val = this.formatMoney(p.valor);
+                // Ex: 1º   11/01/2026        54,95
+                return `${this.pad(num, 4)} ${this.pad(venc, 12)} ${this.padLeft(val, 12)}`;
+            }).join('\n');
+        } else {
+            pagtosTxt = `À VISTA                    ${this.formatMoney(data.total)}`;
+        }
+
+        const totalFinal = this.formatMoney(data.total);
 
         return `
 <pre class="print-preview">
 ${header}
 
-** PEDIDO / VENDA CONDICIONAL **
-DOC: ${data.numero || data.id_legado || 'N/A'}  DATA: ${formatDateTime(data.data)}
-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-CLIENTE: ${data.customer?.name?.toUpperCase() || data.cliente?.nome?.toUpperCase() || 'CONSUMIDOR'}
-END: ${data.customer?.address?.street || data.cliente?.endereco?.logradouro || ''}, ${data.customer?.address?.number || data.cliente?.endereco?.numero || ''}
-CIDADE: ${data.customer?.address?.city || data.cliente?.endereco?.cidade || ''}
-///////////////////////////////////////////////////////////
+RECIBO / VENDA Nº ${docNum}
+DATA: ${dataEmissao}
+-----------------------------------------------
+CLIENTE: ${cliNome}
+CPF/CNPJ: ${cliDoc}
+END: ${endStr}
+-----------------------------------------------
 ${modalidade}
 ${prazo}
----------------------------------------------------------------
-DESCRIÇÃO / QTD X UNIT = TOTAL
----------------------------------------------------------------
-${itensBlock}
----------------------------------------------------------------
-TOTAL/ITENS: ${lista.length}
-VALOR TOTAL DA COMPRA . . . . . . . . . . . . R$ ${PrintHandler.formatCurrency(totalFinal)}
+===============================================
+ITEM DESCRIÇÃO
+    VALOR UNIT.               SUBTOTAL
+===============================================
+${itensTxt}
+===============================================
+TOTAL DA VENDA . . . . . . R$ ${this.padLeft(totalFinal, 10)}
 
-VENCIMENTO:
-${vencimento}                      R$ ${PrintHandler.formatCurrency(totalFinal)}
-***************************************************************
+CONDIÇÃO DE PAGAMENTO:
+Nº   VENCIMENTO             VALOR(R$)
+-----------------------------------------------
+${pagtosTxt}
+-----------------------------------------------
+
 ${footer}
-***************************************************************
 
-
-__________________________________________
+_______________________________________
 Assinatura
 </pre>
         `;
     },
 
     generatePromissoriaHTML: function (data, settings = {}) {
-        const config = settings || {};
-        const header = config.header || `METTA CONTABILIDADE...`;
-        const footer = config.footer || `Reconheço (emos) a exatidão...`;
-        
-        const total = data.total || 0;
-        
-        // Lógica de Parcelas
-        let parcelasBlock = '';
-        let parcelas = [];
-        // Mapeamento de parcelas (payment.installments ou parcelas)
-        if (data.payment && Array.isArray(data.payment.installments)) parcelas = data.payment.installments;
-        else if (Array.isArray(data.parcelas)) parcelas = data.parcelas;
-
-        if (parcelas.length > 0) {
-            parcelasBlock = parcelas.map(p => {
-                const num = p.number || p.numero || 1;
-                const date = formatISODate(p.due_date || p.data_vencimento);
-                const val = PrintHandler.formatCurrency(p.value || p.valor);
-                return `PARC. ${num}   ${date}        ${val}`;
-            }).join('\n');
-        } else {
-            parcelasBlock = `À VISTA   ${formatDateTime(data.data)}        ${PrintHandler.formatCurrency(total)}`;
-        }
-
-        return `
-<pre class="print-preview">
-${header}
-
-Op: Venda           Data: ${formatDateTime(data.data)}
-Seq: ${data.numero || data.id_legado || 'N/A'}
----------------------------------------------------------------
-Nome: ${data.customer?.name?.toUpperCase() || data.cliente?.nome?.toUpperCase() || 'CLIENTE'}
-CPF/CNPJ: ${data.customer?.document || data.cliente?.documento || 'N/A'}
-
-*** DETALHAR PAGAMENTO ***
-TIPO      VENCIMENTO           VALOR R$
----------------------------------------------------------------
-${parcelasBlock}
----------------------------------------------------------------
-                             Valor R$: ${PrintHandler.formatCurrency(total)}
-
-${footer}
-
-
-_______________________________________
-${data.customer?.name?.toUpperCase() || data.cliente?.nome?.toUpperCase() || 'CLIENTE'}
-</pre>
-        `;
+        // Reutiliza a lógica para manter consistência, 
+        // mas você pode alterar o título se quiser
+        return this.generateCondicionalHTML(data, settings);
     }
 };
