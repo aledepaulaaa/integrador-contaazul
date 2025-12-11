@@ -85,10 +85,8 @@
 // ARQUIVO: /public/js/print.js
 
 const PrintHandler = {
-    // Formata moeda
     formatCurrency: (val) => Number(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
 
-    // Gera o HTML para o modelo "Venda Condicional"
     generateCondicionalHTML: function (data, settings = {}) {
         const config = settings || {};
         
@@ -97,37 +95,42 @@ const PrintHandler = {
         
         const prazo = config.prazo ? `PRAZO DE DEVOLUCAO: ${config.prazo}` : 'PRAZO DE DEVOLUCAO: A COMBINAR';
         const modalidade = config.modalidade ? `MODALIDADE: ${config.modalidade}` : '';
-        const vencimento = config.vencimento ? formatISODate(config.vencimento) : formatDateTime(data.data);
+        const vencimento = config.vencimento ? formatISODate(config.vencimento) : formatDateTime(data.data || new Date().toISOString());
 
-        // --- LÓGICA DE ITENS (CORREÇÃO DO ERRO .map) ---
+        // --- LÓGICA DE ITENS ---
         let itensBlock = '';
         let lista = [];
 
-        // Verifica explicitamente se é um array antes de atribuir
-        if (Array.isArray(data.items)) lista = data.items;
-        else if (Array.isArray(data.itens)) lista = data.itens;
-        
-        // Se a lista tiver itens, monta o loop
-        if (lista.length > 0) {
-            itensBlock = lista.map(item => {
-                // Tratamento de nomes e valores
-                const desc = (item.description || item.descricao || item.item?.nome || 'PRODUTO').toUpperCase();
-                const qtd = (item.quantity || item.quantidade || 1);
-                const valUnit = (item.value || item.valor_unitario || item.valor || 0);
-                const subtotal = (item.total || item.valor_total || (qtd * valUnit));
+        // 1. Tenta encontrar o array de itens nas variações possíveis da API
+        if (Array.isArray(data.items)) lista = data.items;       // Padrão V1 English
+        else if (Array.isArray(data.itens)) lista = data.itens;  // Padrão V1 Portuguese
+        else if (data.sale && Array.isArray(data.sale.items)) lista = data.sale.items; // Algumas respostas aninhadas
 
-                // Formato: 
-                // NOME DO PRODUTO
-                //    1 X 50.00 = R$ 50.00
-                return `${desc}\n` +
-                       `   ${qtd} X ${PrintHandler.formatCurrency(valUnit)} = R$ ${PrintHandler.formatCurrency(subtotal)}`;
+        if (lista.length > 0 && typeof lista[0] === 'object') {
+            itensBlock = lista.map(item => {
+                // 2. Mapeamento profundo das propriedades do item
+                // Conta Azul pode retornar: item.description OU item.item.name OU item.descricao
+                let nomeProduto = 'PRODUTO SEM NOME';
+                
+                if (item.description) nomeProduto = item.description;
+                else if (item.item && item.item.name) nomeProduto = item.item.name;
+                else if (item.descricao) nomeProduto = item.descricao;
+                else if (item.name) nomeProduto = item.name;
+
+                const qtd = item.quantity || item.quantidade || 1;
+                const valor = item.value || item.unit_value || item.valor_unitario || item.valor || 0;
+                const total = item.total || (qtd * valor);
+
+                // Layout alinhado à esquerda (Retro Style)
+                return `${nomeProduto.toUpperCase()}\n` +
+                       `   ${qtd} X ${PrintHandler.formatCurrency(valor)} = R$ ${PrintHandler.formatCurrency(total)}`;
             }).join('\n---------------------------------------------------------------\n');
         } else {
-            // Fallback caso não venha itens (evita tela branca)
-            itensBlock = `            LISTA DE ITENS INDISPONÍVEL\n            (Verifique o cadastro da venda)`;
+            // Se chegou aqui, o array está vazio ou não é um array
+            itensBlock = `            LISTA DE ITENS INDISPONÍVEL\n            (API retornou: ${JSON.stringify(data.itens || data.items || 'vazio').substring(0, 50)}...)`;
         }
 
-        const totalFinal = (data.total || 0);
+        const totalFinal = data.total || 0;
 
         return `
 <pre class="print-preview">
@@ -163,27 +166,29 @@ Assinatura
         `;
     },
 
-    // Gera o HTML para o modelo "Promissória"
     generatePromissoriaHTML: function (data, settings = {}) {
         const config = settings || {};
-        const header = config.header || `METTA CONTABILIDADE\nCNPJ 20316861000190 IE ISENTO\n...`;
-        const footer = config.footer || `Reconheço (emos) a exatidão desta duplicata...`;
+        const header = config.header || `METTA CONTABILIDADE...`;
+        const footer = config.footer || `Reconheço (emos) a exatidão...`;
         
-        const total = (data.total || 0);
-
-        // Tenta listar parcelas se houver
+        const total = data.total || 0;
+        
+        // Lógica de Parcelas
         let parcelasBlock = '';
         let parcelas = [];
-        if (Array.isArray(data.payment?.installments)) parcelas = data.payment.installments;
+        // Mapeamento de parcelas (payment.installments ou parcelas)
+        if (data.payment && Array.isArray(data.payment.installments)) parcelas = data.payment.installments;
         else if (Array.isArray(data.parcelas)) parcelas = data.parcelas;
 
         if (parcelas.length > 0) {
             parcelasBlock = parcelas.map(p => {
-                return `PARC. ${p.number || p.numero}   ${formatISODate(p.due_date || p.data_vencimento)}        ${PrintHandler.formatCurrency(p.value || p.valor)}`;
+                const num = p.number || p.numero || 1;
+                const date = formatISODate(p.due_date || p.data_vencimento);
+                const val = PrintHandler.formatCurrency(p.value || p.valor);
+                return `PARC. ${num}   ${date}        ${val}`;
             }).join('\n');
         } else {
-            // Se não tiver parcelas detalhadas, mostra resumo à vista
-            parcelasBlock = `à vista   ${formatDateTime(data.data)}        ${PrintHandler.formatCurrency(total)}`;
+            parcelasBlock = `À VISTA   ${formatDateTime(data.data)}        ${PrintHandler.formatCurrency(total)}`;
         }
 
         return `

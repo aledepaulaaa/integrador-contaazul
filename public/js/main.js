@@ -210,49 +210,52 @@ document.addEventListener('DOMContentLoaded', () => {
     async function prepareAndShowPrintModal(dataId, printType, entityType) {
         let dataToPrint = null;
 
+        const btn = document.querySelector(`.btn-print-row[data-id="${dataId}"][data-type="${printType}"]`);
+        const originalContent = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        }
+
         try {
             if (entityType === 'vendas') {
-                // *** CORREÇÃO: Usar dados locais ***
-                // Se a API da Conta Azul já retorna os itens na busca, eles estarão aqui.
-                dataToPrint = window.rawApiData[dataId];
-
-                // Validação de segurança
-                if (!dataToPrint) {
-                    throw new Error('Dados da venda não encontrados na memória local.');
-                }
-
-            } else if (entityType === 'pessoas') {
-                // Para pessoas, mantemos o fetch pois não carregamos todas as vendas da pessoa na lista principal
-                const btn = document.querySelector(`.btn-print-row[data-id="${dataId}"]`);
-                if (btn) {
-                    btn.disabled = true;
-                    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-                }
-
+                // FORÇA A BUSCA DE DETALHES NA API
                 try {
-                    const res = await fetch(`/api/vendas/cliente/${dataId}`);
+                    console.log('Buscando detalhes via API...');
+                    const res = await fetch(`/api/vendas/${dataId}`);
                     const json = await res.json();
-                    if (json.ok) dataToPrint = json.data;
-                    else throw new Error(json.error);
-                } finally {
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = printType === 'condicional' ? 'Cond.' : 'Prom.';
+
+                    if (json.ok && json.data) {
+                        dataToPrint = json.data;
+                        console.log('Detalhes carregados com sucesso. Itens:', dataToPrint.items || dataToPrint.itens);
+                    } else {
+                        throw new Error('JSON inválido ou sem dados');
                     }
+                } catch (err) {
+                    console.error('Falha ao buscar detalhes:', err);
+                    alert('Não foi possível carregar os itens da venda. Verifique o console.');
+                    // Não faz fallback para rawApiData para não imprimir sem produtos
+                    throw new Error('Falha ao carregar itens da venda.');
                 }
+            } else if (entityType === 'pessoas') {
+                const res = await fetch(`/api/vendas/cliente/${dataId}`);
+                const json = await res.json();
+                if (json.ok) dataToPrint = json.data;
             }
 
-            if (!dataToPrint) throw new Error('Dados não encontrados.');
+            if (!dataToPrint) throw new Error('Dados vazios.');
 
-            // 2. Busca Configurações Globais
+            // Busca configurações
             let configToUse = {};
-            const resSettings = await fetch('/api/settings/print');
-            const jsonSettings = await resSettings.json();
-            if (jsonSettings.ok && jsonSettings.data) {
-                configToUse = jsonSettings.data[printType] || {};
-            }
+            try {
+                const resSettings = await fetch('/api/settings/print');
+                const jsonSettings = await resSettings.json();
+                if (jsonSettings.ok && jsonSettings.data) {
+                    configToUse = jsonSettings.data[printType] || {};
+                }
+            } catch (e) { }
 
-            // 3. Gera HTML
+            // Gera HTML
             let htmlContent = '';
             if (printType === 'condicional') {
                 $('#print-modal-title').textContent = 'Impressão Condicional';
@@ -262,15 +265,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 htmlContent = PrintHandler.generatePromissoriaHTML(dataToPrint, configToUse);
             }
 
-            // 4. Exibe Modal
             $('#print-modal-body').innerHTML = htmlContent;
             $('#btn-confirm-print').onclick = () => handlePrinting(htmlContent);
             printModalInstance.show();
 
         } catch (e) {
-            alert('Erro ao preparar impressão: ' + e.message);
+            alert('Erro: ' + e.message);
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
         }
     }
+
 
     function handlePrinting(content) {
         const printWindow = window.open('', '_blank');

@@ -50,9 +50,10 @@ module.exports = {
     getById: async (req, res) => {
         try {
             const { id } = req.params;
+            console.log(`Buscando detalhes da venda ID: ${id}...`)
 
-            // Verifique se o seu 'contaAzulAPI' já tem o base URL configurado.
             const response = await contaAzul.get(`/venda/${id}`);
+            console.log("Venda detalhada: ", response.data);
 
             return res.json({ ok: true, data: response.data });
         } catch (error) {
