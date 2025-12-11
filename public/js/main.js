@@ -1,15 +1,14 @@
 // ARQUIVO: /public/js/main.js
 
 let printModalInstance = null;
-let editModalInstance = null; // Instância para o modal de configurações globais
-window.rawApiData = {}; // Armazena os dados brutos da API para uso
+let editModalInstance = null;
+window.rawApiData = {};
 
 document.addEventListener('DOMContentLoaded', () => {
     const $ = (s) => document.querySelector(s);
     let dataTableInstance = null;
     window.currentExportData = [];
 
-    // Mapeamento dos manipuladores de cada entidade
     window.appHandlers = {
         vendas: vendasHandler,
         pessoas: pessoasHandler,
@@ -20,14 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
         centro_de_custos: financeirosHandlers.centro_de_custos
     };
 
-    // --- FUNÇÕES DE UI (FILTROS) ---
+    // --- FUNÇÕES DE UI ---
     function updateVisibleFilters() {
         const entity = $('#filter-entity')?.value;
         const financeSubtype = $('#finance-subtype')?.value;
-
-        // Esconde todos primeiro
         document.querySelectorAll('#dynamic-filters-container .filter-control').forEach(el => el.style.display = 'none');
-
         if (entity === 'financeiro') {
             $('#finance-subtype-wrapper').style.display = 'flex';
             if (financeSubtype === 'centro_de_custos') {
@@ -50,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let apiPath = '';
         const params = new URLSearchParams();
 
-        // Configura parâmetros baseado nos filtros
         if (entityValue === 'financeiro') {
             entityValue = $('#finance-subtype').value;
             const financeId = $('#finance-id-filter').value.trim();
@@ -83,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const handler = window.appHandlers[entityValue];
                 if (!handler) throw new Error(`Handler para "${entityValue}" não implementado.`);
 
-                // Formata os dados (aqui os botões de ação são criados nas entidades vendas/pessoas)
                 const { formattedData, columnsConfig } = handler.format(json.data || []);
                 window.currentExportData = formattedData;
 
@@ -102,59 +96,76 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dataTableInstance) dataTableInstance.destroy();
         const tableElement = $('#interactive-table');
         tableElement.innerHTML = '';
-
         if (!data || data.length === 0) {
             $('#data-container').style.display = 'none';
             $('#output').innerHTML = `<p class="text-center p-3">Nenhum dado encontrado.</p>`;
             return;
         }
-
         dataTableInstance = new DataTable(tableElement, {
-            data,
-            columns: columnsConfig,
-            responsive: true,
-            destroy: true,
+            data, columns: columnsConfig, responsive: true, destroy: true,
             language: { url: 'https://cdn.datatables.net/plug-ins/2.0.8/i18n/pt-BR.json' },
-            columnDefs: [
-                // Desabilita ordenação na última coluna (assumindo que seja 'Ações')
-                { orderable: false, targets: -1 }
-            ]
+            columnDefs: [{ orderable: false, targets: -1 }]
         });
     }
 
-    // --- LÓGICA DE CONFIGURAÇÃO GLOBAL (PERSISTÊNCIA JSON) ---
+    // --- LÓGICA DE CONFIGURAÇÃO (SEPARADA POR TIPO) ---
 
-    // Abre o modal para cadastrar ou atualizar as configs fixas
-    async function openGlobalSettingsModal() {
-        $('#edit-modal-title').textContent = 'Configurações Globais de Impressão';
+    // Abre o modal carregando a configuração específica ('condicional' ou 'promissoria')
+    async function openSettingsModal(type) {
+        const isCondicional = type === 'condicional';
+        const title = isCondicional ? 'Cadastro Condicional' : 'Cadastro Promissória';
+
+        $('#edit-modal-title').textContent = title;
+        $('#edit-modal-title').innerHTML = `<i class="bi bi-gear"></i> ${title}`;
+
         const saveBtn = $('#btn-save-and-print');
-        saveBtn.textContent = 'Salvar Alterações'; // Renomeia o botão para refletir a ação
+        saveBtn.textContent = 'Salvar Alterações';
 
-        // 1. Tenta buscar configurações existentes
+        // Mostra campos extras apenas se for condicional
+        $('#condicional-fields').style.display = isCondicional ? 'block' : 'none';
+
+        // Feedback visual
+        const formInputs = document.querySelectorAll('#edit-form input, #edit-form textarea');
+        formInputs.forEach(input => input.disabled = true);
+
         try {
+            // 1. Busca configurações salvas
             const res = await fetch('/api/settings/print');
             const json = await res.json();
-            const settings = json.data || {};
 
-            // 2. Preenche os campos do modal
-            $('#edit-header').value = settings.header || 'METTA CONTABILIDADE/STA BARBARA DO LESTE';
-            $('#edit-footer').value = settings.footer || `Reconheço que as mercadorias acima descritas\nestão sob minha responsabilidade...`;
-            $('#edit-prazo').value = settings.prazo || '';
-            $('#edit-modalidade').value = settings.modalidade || '';
-            $('#edit-vencimento').value = settings.vencimento || '';
+            // Pega o objeto específico (condicional ou promissoria) ou vazio
+            const allSettings = json.data || {};
+            const currentSettings = allSettings[type] || {};
 
-            // Garante que os campos extras apareçam
-            $('#condicional-fields').style.display = 'block';
+            // 2. Preenche o formulário
+            $('#edit-header').value = currentSettings.header || (isCondicional
+                ? 'METTA CONTABILIDADE/STA BARBARA DO LESTE'
+                : 'METTA CONTABILIDADE\nCNPJ...\nSTA BARBARA DO LESTE/MG');
 
-            // 3. Define a ação de salvar
+            $('#edit-footer').value = currentSettings.footer || (isCondicional
+                ? 'Reconheço que as mercadorias acima descritas estão sob minha responsabilidade...'
+                : 'Reconheço (emos) a exatidão desta duplicata...');
+
+            if (isCondicional) {
+                $('#edit-prazo').value = currentSettings.prazo || '';
+                $('#edit-modalidade').value = currentSettings.modalidade || '';
+                $('#edit-vencimento').value = currentSettings.vencimento || '';
+            }
+
+            formInputs.forEach(input => input.disabled = false);
+
+            // 3. Configura o botão Salvar
             saveBtn.onclick = async () => {
                 const newSettings = {
                     header: $('#edit-header').value,
-                    footer: $('#edit-footer').value,
-                    prazo: $('#edit-prazo').value,
-                    modalidade: $('#edit-modalidade').value,
-                    vencimento: $('#edit-vencimento').value
+                    footer: $('#edit-footer').value
                 };
+
+                if (isCondicional) {
+                    newSettings.prazo = $('#edit-prazo').value;
+                    newSettings.modalidade = $('#edit-modalidade').value;
+                    newSettings.vencimento = $('#edit-vencimento').value;
+                }
 
                 saveBtn.disabled = true;
                 saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...';
@@ -163,18 +174,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     const saveRes = await fetch('/api/settings/print', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(newSettings)
+                        body: JSON.stringify({ type: type, settings: newSettings })
                     });
                     const saveJson = await saveRes.json();
 
                     if (saveJson.ok) {
-                        alert('Configurações salvas com sucesso!');
+                        alert(`Configurações de ${isCondicional ? 'Condicional' : 'Promissória'} salvas!`);
                         editModalInstance.hide();
                     } else {
                         alert('Erro ao salvar: ' + saveJson.error);
                     }
                 } catch (e) {
-                    alert('Erro de conexão ao salvar.');
+                    alert('Erro de conexão.');
                 } finally {
                     saveBtn.disabled = false;
                     saveBtn.textContent = 'Salvar Alterações';
@@ -185,139 +196,165 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             alert('Erro ao carregar configurações: ' + error.message);
+            formInputs.forEach(input => input.disabled = false);
         }
     }
 
-    // Apaga as configurações salvas
-    async function deleteGlobalSettings() {
-        if (confirm('Tem certeza que deseja APAGAR as configurações salvas? Isso retornará aos valores padrão na próxima impressão.')) {
-            if (confirm('Confirmar exclusão definitiva?')) {
-                try {
-                    const res = await fetch('/api/settings/print', { method: 'DELETE' });
-                    const json = await res.json();
-                    if (json.ok) alert('Configurações apagadas.');
-                    else alert('Erro ao apagar: ' + json.error);
-                } catch (e) {
-                    alert('Erro ao conectar.');
-                }
-            }
+    async function deleteAllSettings() {
+        if (confirm('Tem certeza? Isso apagará as configurações de AMBOS (Condicional e Promissória).')) {
+            try {
+                const res = await fetch('/api/settings/print', { method: 'DELETE' });
+                const json = await res.json();
+                if (json.ok) alert('Todas as configurações foram redefinidas.');
+                else alert('Erro ao apagar.');
+            } catch (e) { alert('Erro de conexão.'); }
         }
     }
 
-    // --- LÓGICA DE IMPRESSÃO (INTEGRADA COM CONFIG GLOBAL) ---
+    // --- LÓGICA DE IMPRESSÃO (BUSCA DETALHADA DE PRODUTOS) ---
 
-    // Prepara os dados e o layout
     async function prepareAndShowPrintModal(dataId, printType, entityType) {
-        // 1. Busca dados da entidade (Venda ou Pessoa)
         let dataToPrint = null;
 
-        if (entityType === 'vendas') {
-            dataToPrint = window.rawApiData[dataId];
-        } else if (entityType === 'pessoas') {
-            // Busca dados detalhados da pessoa/venda se necessário
-            const btn = document.querySelector(`.btn-print-row[data-id="${dataId}"]`);
-            if (btn) {
-                const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-                btn.disabled = true;
-
-                try {
-                    const res = await fetch(`/api/vendas/cliente/${dataId}`);
-                    const json = await res.json();
-                    if (json.ok) dataToPrint = json.data;
-                    else throw new Error(json.error);
-                } catch (e) {
-                    alert('Erro ao buscar dados para impressão: ' + e.message);
-                    btn.innerHTML = originalHtml;
-                    btn.disabled = false;
-                    return;
-                }
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-            }
+        // Exibe loading no botão que foi clicado
+        const clickedBtn = document.querySelector(`.btn-print-row[data-id="${dataId}"][data-type="${printType}"]`);
+        const originalBtnContent = clickedBtn ? clickedBtn.innerHTML : '';
+        if (clickedBtn) {
+            clickedBtn.disabled = true;
+            clickedBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
         }
 
-        if (!dataToPrint) return alert('Dados não encontrados para impressão.');
-
-        // 2. Busca Configurações Globais (Settings)
-        let globalSettings = {};
         try {
-            const res = await fetch('/api/settings/print');
-            const json = await res.json();
-            if (json.ok && json.data) {
-                globalSettings = json.data;
+            if (entityType === 'vendas') {
+                // *** PULO DO GATO: Busca detalhada para pegar a lista de produtos (itens) ***
+                // Se usamos rawApiData direto, só temos o resumo. Precisamos dos detalhes.
+                const res = await fetch(`/api/vendas/${dataId}`);
+                // NOTA: Se sua rota de detalhes for diferente (ex: /api/vendas/detalhes/:id), ajuste aqui.
+                // Assumindo que /api/vendas/:id chama o endpoint Get Sale da Conta Azul.
+
+                const json = await res.json();
+
+                if (json.ok) {
+                    dataToPrint = json.data;
+                } else {
+                    // Fallback: Tenta usar os dados da tabela se a busca detalhada falhar
+                    console.warn('Falha ao buscar detalhes, usando dados de resumo.');
+                    dataToPrint = window.rawApiData[dataId];
+                }
+
+            } else if (entityType === 'pessoas') {
+                const res = await fetch(`/api/vendas/cliente/${dataId}`);
+                const json = await res.json();
+                if (json.ok) dataToPrint = json.data;
             }
+
+            if (!dataToPrint) throw new Error('Dados não encontrados.');
+
+            // 2. Busca Configurações Globais
+            let configToUse = {};
+            const resSettings = await fetch('/api/settings/print');
+            const jsonSettings = await resSettings.json();
+            if (jsonSettings.ok && jsonSettings.data) {
+                // Seleciona a configuração correta baseada no tipo de impressão
+                configToUse = jsonSettings.data[printType] || {};
+            }
+
+            // 3. Gera HTML
+            let htmlContent = '';
+            if (printType === 'condicional') {
+                $('#print-modal-title').textContent = 'Impressão Condicional';
+                htmlContent = PrintHandler.generateCondicionalHTML(dataToPrint, configToUse);
+            } else {
+                $('#print-modal-title').textContent = 'Impressão Promissória';
+                htmlContent = PrintHandler.generatePromissoriaHTML(dataToPrint, configToUse);
+            }
+
+            // 4. Exibe Modal
+            $('#print-modal-body').innerHTML = htmlContent;
+            $('#btn-confirm-print').onclick = () => handlePrinting(htmlContent);
+            printModalInstance.show();
+
         } catch (e) {
-            console.warn('Usando configurações padrão (falha ao carregar globais).');
+            alert('Erro ao preparar impressão: ' + e.message);
+        } finally {
+            if (clickedBtn) {
+                clickedBtn.disabled = false;
+                clickedBtn.innerHTML = originalBtnContent;
+            }
         }
-
-        // 3. Gera HTML baseado no tipo (Promissória ou Condicional)
-        let htmlContent = '';
-        if (printType === 'condicional') {
-            $('#print-modal-title').textContent = 'Impressão Condicional';
-            htmlContent = PrintHandler.generateCondicionalHTML(dataToPrint, globalSettings);
-        } else {
-            $('#print-modal-title').textContent = 'Impressão Promissória';
-            htmlContent = PrintHandler.generatePromissoriaHTML(dataToPrint, globalSettings);
-        }
-
-        // 4. Exibe o Modal de Pré-visualização
-        $('#print-modal-body').innerHTML = htmlContent;
-        $('#btn-confirm-print').onclick = () => handlePrinting(htmlContent);
-        printModalInstance.show();
     }
 
-    // Abre a janela de impressão com CSS corrigido
     function handlePrinting(content) {
         const printWindow = window.open('', '_blank');
+        // Estilos CSS para simular cupom fiscal térmico
         const style = `
             <style>
                 body { 
                     font-family: 'Courier New', monospace; 
-                    font-size: 15px; /* Tamanho da fonte aumentado */
-                    font-weight: bold; /* Negrito para melhor legibilidade térmica */
+                    font-size: 15px; 
+                    font-weight: bold;
                     margin: 0; 
+                    padding: 10px;
                     color: #000;
+                    background-color: #fff;
                 }
-                .print-preview { 
-                    margin: 0; 
-                    white-space: pre-wrap; 
-                    line-height: 1.2; 
+                .print-container {
+                    max-width: 80mm; /* Largura padrão de térmica de 80mm */
+                    margin: 0 auto;
                 }
+                .text-center { text-align: center; }
+                .text-end { text-align: right; }
+                .fw-bold { font-weight: bold; }
+                .mb-1 { margin-bottom: 4px; }
+                .mb-2 { margin-bottom: 8px; }
+                .mb-3 { margin-bottom: 12px; }
+                .mb-4 { margin-bottom: 16px; }
+                .mt-5 { margin-top: 30px; }
+                
+                /* Cria a linha tracejada visual */
+                .border-dashed {
+                    border-bottom: 1px dashed #000;
+                    width: 100%;
+                    margin: 5px 0;
+                }
+
+                table { width: 100%; border-collapse: collapse; }
+                td, th { vertical-align: top; }
+
                 @media print {
                     body { -webkit-print-color-adjust: exact; }
                     @page { margin: 0; }
+                    .print-container { width: 100%; max-width: none; }
                 }
             </style>
         `;
         printWindow.document.write(`<html><head><title>Imprimir</title>${style}</head><body>${content}</body></html>`);
         printWindow.document.close();
         printWindow.focus();
-        setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
+        setTimeout(() => { printWindow.print(); printWindow.close(); }, 500); // Timeout maior para carregar estilos
     }
 
-    // --- EVENT LISTENERS (BOTÕES E INTERAÇÕES) ---
+    // --- LISTENERS ---
 
-    // Botões de Configuração Global
-    const btnConfig = $('#btn-config-settings');
-    if (btnConfig) btnConfig.addEventListener('click', openGlobalSettingsModal);
+    // Novos Botões de Configuração Separados
+    const btnCond = $('#btn-config-condicional');
+    if (btnCond) btnCond.addEventListener('click', () => openSettingsModal('condicional'));
 
-    const btnDelConfig = $('#btn-delete-settings');
-    if (btnDelConfig) btnDelConfig.addEventListener('click', deleteGlobalSettings);
+    const btnProm = $('#btn-config-promissoria');
+    if (btnProm) btnProm.addEventListener('click', () => openSettingsModal('promissoria'));
 
-    // Botões Padrão (Auth, Busca, Filtros)
+    const btnDel = $('#btn-delete-settings');
+    if (btnDel) btnDel.addEventListener('click', deleteAllSettings);
+
+    // Botões Padrão
     const btnAuth = $('#btn-auth');
     if (btnAuth) btnAuth.addEventListener('click', () => window.location.href = '/auth/connect');
-
     const btnDisconnect = $('#btn-disconnect');
     if (btnDisconnect) btnDisconnect.addEventListener('click', () => window.location.href = '/auth/disconnect');
-
     const btnBuscarDados = $('#btn-buscar-dados');
     if (btnBuscarDados) btnBuscarDados.addEventListener('click', fetchAndRender);
-
     const filterEntity = $('#filter-entity');
     if (filterEntity) filterEntity.addEventListener('change', updateVisibleFilters);
-
     const financeSubtype = $('#finance-subtype');
     if (financeSubtype) financeSubtype.addEventListener('change', updateVisibleFilters);
 
@@ -350,25 +387,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // DELEGAÇÃO DE EVENTOS (TABELA E LISTAS DINÂMICAS)
+    // Delegação de Eventos
     document.body.addEventListener('click', async (e) => {
         const target = e.target;
-
-        // Verifica cliques nos novos botões de impressão dentro da tabela
         const printButtonRow = target.closest('.btn-print-row');
-
-        // Verifica botões do histórico
         const viewHistoryButton = target.closest('.btn-view-history');
         const deleteHistoryButton = target.closest('.btn-delete-history');
 
-        // 1. Ação de Imprimir (Vindo da tabela)
         if (printButtonRow) {
-            const { id, type, entity } = printButtonRow.dataset; // type: 'condicional' ou 'promissoria'
+            const { id, type, entity } = printButtonRow.dataset;
             await prepareAndShowPrintModal(id, type, entity);
-        }
-
-        // 2. Ação de Ver Histórico
-        else if (viewHistoryButton) {
+        } else if (viewHistoryButton) {
+            // ... (Lógica de histórico mantida igual) ...
             e.preventDefault();
             const { type, filename } = viewHistoryButton.dataset;
             bootstrap.Modal.getInstance($('#history-modal')).hide();
@@ -383,10 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 $('#data-container').style.display = 'block';
                 $('#output').innerHTML = `<div class="alert alert-info">Exibindo histórico: ${filename}</div>`;
             } catch (error) { alert(`Erro: ${error.message}`); }
-        }
-
-        // 3. Ação de Excluir Histórico
-        else if (deleteHistoryButton) {
+        } else if (deleteHistoryButton) {
             const { type, filename } = deleteHistoryButton.dataset;
             if (confirm(`Excluir o arquivo ${filename}?`)) {
                 try {
@@ -399,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- EXPORTAÇÃO (PDF/EXCEL) ---
+    // Exportação
     const btnExportPdf = $('#btn-export-pdf');
     if (btnExportPdf) {
         btnExportPdf.addEventListener('click', () => {
@@ -426,17 +453,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Limpa HTML de botões/accordions para exportação limpa
     function getExportData() {
         return window.currentExportData.map(row => {
             const cleanRow = { ...row };
             for (const key in cleanRow) {
-                // Remove botões de ação da exportação
-                if (key === 'Ações') {
-                    delete cleanRow[key];
-                    continue;
-                }
-                // Limpa HTML (como accordions)
+                if (key === 'Ações') { delete cleanRow[key]; continue; }
                 if (typeof cleanRow[key] === 'string' && cleanRow[key].includes('<')) {
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = cleanRow[key];
@@ -447,15 +468,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- INICIALIZAÇÃO DE MODAIS ---
+    // Inicialização
     const printModalEl = $('#print-modal');
     if (printModalEl) printModalInstance = new bootstrap.Modal(printModalEl);
-
     const editModalEl = $('#edit-modal');
     if (editModalEl) editModalInstance = new bootstrap.Modal(editModalEl);
-
-    // Estado inicial dos filtros
-    if ($('#filter-entity')) {
-        updateVisibleFilters();
-    }
+    if ($('#filter-entity')) updateVisibleFilters();
 });

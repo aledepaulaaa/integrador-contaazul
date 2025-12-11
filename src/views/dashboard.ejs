@@ -2,19 +2,27 @@
 <div class="glass-card p-4">
     <h1 class="mb-4">Bem-vindo ao Integrador Conta Azul</h1>
 
-    <div class="glass-card p-3 mb-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <!-- Área de Configurações de Impressão -->
+<div class="glass-card p-3 mb-4">
+    <div class="row align-items-center">
+        <div class="col-12 col-md-4 mb-2 mb-md-0">
             <h5 class="m-0 text-white"><i class="bi bi-printer"></i> Configurações de Impressão</h5>
-            <div>
-                <button id="btn-config-settings" class="btn btn-primary">
-                    Cadastrar | Atualizar Configuração
+        </div>
+        <div class="col-12 col-md-8 text-end">
+            <div class="d-grid gap-2 d-md-block">
+                <button id="btn-config-condicional" class="btn btn-info text-white">
+                    <i class="bi bi-gear"></i> Cadastro Condicional
                 </button>
-                <button id="btn-delete-settings" class="btn btn-outline-danger">
-                    Apagar Configuração
+                <button id="btn-config-promissoria" class="btn btn-warning text-dark">
+                    <i class="bi bi-gear"></i> Cadastro Promissória
+                </button>
+                <button id="btn-delete-settings" class="btn btn-outline-danger" title="Apagar todas as configurações">
+                    <i class="bi bi-trash"></i>
                 </button>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Filtros -->
     <div class="mb-4">
