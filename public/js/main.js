@@ -274,41 +274,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handlePrinting(content) {
         const printWindow = window.open('', '_blank');
-        // Estilos CSS ajustados para 17px
+        // Estilos CSS
         const style = `
             <style>
                 body { 
-                    font-family: 'Courier New', monospace; 
-                    font-size: 17px; /* AUMENTADO A PEDIDO */
-                    font-weight: bold;
+                    font-family: 'Arial', sans-serif; /* Fonte mais limpa que Courier */
+                    font-size: 12px;
                     margin: 0; 
-                    padding: 5px;
+                    padding: 10px;
                     color: #000;
-                    background-color: #fff;
                 }
-                .print-container {
-                    max-width: 100%; /* Ocupa largura total disponível */
-                    margin: 0 auto;
-                }
-                .text-center { text-align: center; }
-                .text-end { text-align: right; }
-                .fw-bold { font-weight: bold; }
-                .mb-1 { margin-bottom: 4px; }
-                .mb-2 { margin-bottom: 8px; }
+                .print-container { width: 100%; max-width: 100%; }
                 
-                /* Linha tracejada */
-                .border-dashed {
-                    border-bottom: 2px dashed #000; /* Mais espesso para acompanhar a fonte */
-                    width: 100%;
-                    margin: 10px 0;
-                }
+                /* Utilitários */
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .text-left { text-align: left; }
+                .mt-2 { margin-top: 10px; }
+                .mt-4 { margin-top: 20px; }
+                .mb-1 { margin-bottom: 5px; }
+                .small { font-size: 10px; }
+                
+                /* Caixas e Bordas */
+                .header-box { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
+                .section-box { border: 1px solid #000; padding: 5px; }
+                .box-title { font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 3px; }
+                
+                /* Layout Flex do Topo */
+                .row-flex { display: flex; justify-content: space-between; align-items: flex-start; }
+                .company-info { flex-grow: 1; padding: 0 10px; }
+                .sale-info { text-align: right; }
+                .sale-id { font-size: 16px; font-weight: bold; }
+                
+                /* Tabelas */
+                table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+                th { background-color: #f0f0f0; border-bottom: 1px solid #000; font-weight: bold; padding: 4px; }
+                td { padding: 4px; border-bottom: 1px solid #ddd; }
+                
+                .items-table th, .items-table td { font-size: 12px; }
+                .payment-table { width: 60%; } /* Tabela de pagamentos menor */
+                .payment-table th, .payment-table td { font-size: 11px; }
 
-                table { width: 100%; border-collapse: collapse; }
-                td, th { vertical-align: top; padding: 2px 0; }
+                /* Totais */
+                .total-row td { background-color: #f9f9f9; font-weight: bold; border-top: 2px solid #000; }
+                .net-row td { font-size: 14px; }
+
+                /* Assinatura */
+                .signature-line { border-top: 1px solid #000; width: 60%; margin: 30px auto 5px auto; }
 
                 @media print {
                     body { -webkit-print-color-adjust: exact; }
-                    @page { margin: 0; size: auto; }
+                    @page { margin: 5mm; }
                 }
             </style>
         `;
