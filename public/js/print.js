@@ -82,209 +82,133 @@
 //     }
 // };
 
-const PrintHandler = {
-    // Utilitário para formatar moeda
-    formatCurrency: (value) => {
-        return Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    },
+// ARQUIVO: /public/js/print.js
 
-    // Gera o HTML estilo "Documento Auxiliar / Recibo" (Igual ao PDF)
+const PrintHandler = {
+    // Formata moeda
+    formatCurrency: (val) => Number(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+
+    // Gera o HTML para o modelo "Venda Condicional"
     generateCondicionalHTML: function (data, settings = {}) {
         const config = settings || {};
+        
+        const header = config.header || 'METTA CONTABILIDADE/STA BARBARA DO LESTE';
+        const footer = config.footer || `Reconheço que as mercadorias acima descritas\nestão sob minha responsabilidade...`;
+        
+        const prazo = config.prazo ? `PRAZO DE DEVOLUCAO: ${config.prazo}` : 'PRAZO DE DEVOLUCAO: A COMBINAR';
+        const modalidade = config.modalidade ? `MODALIDADE: ${config.modalidade}` : '';
+        const vencimento = config.vencimento ? formatISODate(config.vencimento) : formatDateTime(data.data);
 
-        // Cabeçalho e Rodapé configuráveis (ou padrão)
-        const headerTitle = config.header || 'BELISSIMA\nGERALDO MAGELA, 31 - CENTRO\n(33) 3326-1022';
-        const footerText = config.footer || ''; // Rodapé opcional
+        // --- LÓGICA DE ITENS (CORREÇÃO DO ERRO .map) ---
+        let itensBlock = '';
+        let lista = [];
 
-        // Dados da Venda
-        const numeroVenda = data.numero || data.id_legado || 'N/A';
-        const dataVenda = formatDateTime(data.data); // Função global utils.js
-        const dataVendaSoData = dataVenda.split(' ')[0]; // Pega só a data se vier com hora
-
-        // Dados do Cliente
-        const clienteNome = data.customer?.name || data.cliente?.nome || 'CLIENTE NÃO IDENTIFICADO';
-        const clienteDoc = data.customer?.document || data.cliente?.documento || ''; // CPF/CNPJ
-        // Endereço do Cliente (tratando variações da API)
-        const end = data.customer?.address || data.cliente?.endereco || {};
-        const enderecoCompleto = `${end.street || end.logradouro || ''}, ${end.number || end.numero || ''} - ${end.neighborhood || end.bairro || ''} - ${end.city || end.cidade || ''}/${end.state || end.estado || ''} - CEP: ${end.zip_code || end.cep || ''}`;
-
-        // --- TABELA DE ITENS ---
-        let itemsRows = '';
-        // A API de detalhes retorna 'items' (inglês) ou 'itens'
-        const listaItens = data.items || data.itens || [];
-
-        if (listaItens.length > 0) {
-            itemsRows = listaItens.map(item => {
+        // Verifica explicitamente se é um array antes de atribuir
+        if (Array.isArray(data.items)) lista = data.items;
+        else if (Array.isArray(data.itens)) lista = data.itens;
+        
+        // Se a lista tiver itens, monta o loop
+        if (lista.length > 0) {
+            itensBlock = lista.map(item => {
+                // Tratamento de nomes e valores
                 const desc = (item.description || item.descricao || item.item?.nome || 'PRODUTO').toUpperCase();
-                const code = item.code || item.codigo || ''; // Se tiver código
-                const descCompleta = code ? `${code} - ${desc}` : desc;
-                const qtd = item.quantity || item.quantidade || 1;
-                const valUnit = item.value || item.valor_unitario || 0;
-                const subtotal = item.total || item.valor_total || (qtd * valUnit);
+                const qtd = (item.quantity || item.quantidade || 1);
+                const valUnit = (item.value || item.valor_unitario || item.valor || 0);
+                const subtotal = (item.total || item.valor_total || (qtd * valUnit));
 
-                return `
-                <tr>
-                    <td class="text-center">${qtd}</td>
-                    <td class="text-left">${descCompleta}</td>
-                    <td class="text-right">${PrintHandler.formatCurrency(valUnit)}</td>
-                    <td class="text-right">${PrintHandler.formatCurrency(subtotal)}</td>
-                </tr>`;
-            }).join('');
+                // Formato: 
+                // NOME DO PRODUTO
+                //    1 X 50.00 = R$ 50.00
+                return `${desc}\n` +
+                       `   ${qtd} X ${PrintHandler.formatCurrency(valUnit)} = R$ ${PrintHandler.formatCurrency(subtotal)}`;
+            }).join('\n---------------------------------------------------------------\n');
         } else {
-            itemsRows = `<tr><td colspan="4" class="text-center py-2">DETALHES DOS ITENS NÃO DISPONÍVEIS NA CONSULTA</td></tr>`;
+            // Fallback caso não venha itens (evita tela branca)
+            itensBlock = `            LISTA DE ITENS INDISPONÍVEL\n            (Verifique o cadastro da venda)`;
         }
 
-        // --- TABELA DE PAGAMENTOS (PARCELAS) ---
-        // A Conta Azul geralmente retorna 'payment' -> 'installments'
-        let paymentRows = '';
-        const parcelas = data.payment?.installments || data.parcelas || [];
-
-        if (parcelas.length > 0) {
-            paymentRows = parcelas.map(p => `
-                <tr>
-                    <td class="text-center">${p.number || p.numero || '-'}</td>
-                    <td class="text-center">${formatISODate(p.due_date || p.data_vencimento)}</td>
-                    <td class="text-right">${PrintHandler.formatCurrency(p.value || p.valor)}</td>
-                </tr>
-            `).join('');
-        } else {
-            // Se não tiver parcelas, exibe À Vista ou pega do settings
-            const condicao = data.payment_terms || 'À VISTA';
-            paymentRows = `<tr><td colspan="3" class="text-left">${condicao}</td></tr>`;
-        }
-
-        const totalFinal = data.total || 0;
+        const totalFinal = (data.total || 0);
 
         return `
-            <div class="print-container">
-                <!-- CABEÇALHO -->
-                <div class="header-box">
-                    <div class="row-flex">
-                        <div class="logo-area">
-                           <!-- Se tiver logo em base64, insira aqui -->
-                           <!-- <img src="..." /> -->
-                        </div>
-                        <div class="company-info">
-                            <pre style="margin:0; font-family: inherit;">${headerTitle}</pre>
-                        </div>
-                        <div class="sale-info">
-                            <div class="sale-id">Venda <strong>${numeroVenda}</strong></div>
-                            <div class="sale-date">${dataVendaSoData}</div>
-                        </div>
-                    </div>
-                </div>
+<pre class="print-preview">
+${header}
 
-                <!-- CLIENTE -->
-                <div class="section-box mt-2">
-                    <div class="box-title"><strong>${clienteNome.toUpperCase()}</strong></div>
-                    <div class="box-content">
-                        <div>CPF/CNPJ: ${clienteDoc}</div>
-                        <div>${enderecoCompleto}</div>
-                    </div>
-                </div>
+** PEDIDO / VENDA CONDICIONAL **
+DOC: ${data.numero || data.id_legado || 'N/A'}  DATA: ${formatDateTime(data.data)}
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+CLIENTE: ${data.customer?.name?.toUpperCase() || data.cliente?.nome?.toUpperCase() || 'CONSUMIDOR'}
+END: ${data.customer?.address?.street || data.cliente?.endereco?.logradouro || ''}, ${data.customer?.address?.number || data.cliente?.endereco?.numero || ''}
+CIDADE: ${data.customer?.address?.city || data.cliente?.endereco?.cidade || ''}
+///////////////////////////////////////////////////////////
+${modalidade}
+${prazo}
+---------------------------------------------------------------
+DESCRIÇÃO / QTD X UNIT = TOTAL
+---------------------------------------------------------------
+${itensBlock}
+---------------------------------------------------------------
+TOTAL/ITENS: ${lista.length}
+VALOR TOTAL DA COMPRA . . . . . . . . . . . . R$ ${PrintHandler.formatCurrency(totalFinal)}
 
-                <!-- TABELA DE ITENS -->
-                <table class="items-table mt-2">
-                    <thead>
-                        <tr>
-                            <th class="w-10 text-center">Qt.</th>
-                            <th class="w-50 text-left">Produto/Serviço</th>
-                            <th class="w-20 text-right">Valor unitário</th>
-                            <th class="w-20 text-right">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${itemsRows}
-                    </tbody>
-                    <tfoot>
-                        <tr class="total-row">
-                            <td colspan="3" class="text-right">Total</td>
-                            <td class="text-right">${PrintHandler.formatCurrency(totalFinal)}</td>
-                        </tr>
-                        <tr class="net-row">
-                            <td colspan="3" class="text-right"><strong>Valor líquido</strong></td>
-                            <td class="text-right"><strong>${PrintHandler.formatCurrency(totalFinal)}</strong></td>
-                        </tr>
-                    </tfoot>
-                </table>
+VENCIMENTO:
+${vencimento}                      R$ ${PrintHandler.formatCurrency(totalFinal)}
+***************************************************************
+${footer}
+***************************************************************
 
-                <!-- CONDIÇÃO DE PAGAMENTO -->
-                <div class="mt-2 mb-1"><strong>Condição de pagamento:</strong></div>
-                <table class="payment-table">
-                    <thead>
-                        <tr>
-                            <th class="text-center">Nº</th>
-                            <th class="text-center">Vencimento</th>
-                            <th class="text-right">Valor (R$)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${paymentRows}
-                    </tbody>
-                </table>
 
-                <!-- DADOS EXTRAS / RODAPÉ -->
-                <div class="footer-box mt-4">
-                    <div class="text-center small">
-                        ${footerText.replace(/\n/g, '<br>')}
-                    </div>
-                    <div class="signature-line mt-4"></div>
-                    <div class="text-center">Assinatura do Cliente</div>
-                </div>
-            </div>
+__________________________________________
+Assinatura
+</pre>
         `;
     },
 
-    // Gera o HTML para "Promissória" (Mantido similar, mas usando o config correto)
+    // Gera o HTML para o modelo "Promissória"
     generatePromissoriaHTML: function (data, settings = {}) {
         const config = settings || {};
-        const header = config.header || 'METTA CONTABILIDADE\n...';
-        const footer = config.footer || 'Reconheço (emos) a exatidão...';
+        const header = config.header || `METTA CONTABILIDADE\nCNPJ 20316861000190 IE ISENTO\n...`;
+        const footer = config.footer || `Reconheço (emos) a exatidão desta duplicata...`;
+        
+        const total = (data.total || 0);
+
+        // Tenta listar parcelas se houver
+        let parcelasBlock = '';
+        let parcelas = [];
+        if (Array.isArray(data.payment?.installments)) parcelas = data.payment.installments;
+        else if (Array.isArray(data.parcelas)) parcelas = data.parcelas;
+
+        if (parcelas.length > 0) {
+            parcelasBlock = parcelas.map(p => {
+                return `PARC. ${p.number || p.numero}   ${formatISODate(p.due_date || p.data_vencimento)}        ${PrintHandler.formatCurrency(p.value || p.valor)}`;
+            }).join('\n');
+        } else {
+            // Se não tiver parcelas detalhadas, mostra resumo à vista
+            parcelasBlock = `à vista   ${formatDateTime(data.data)}        ${PrintHandler.formatCurrency(total)}`;
+        }
 
         return `
-            <div class="print-container">
-                <div class="text-center fw-bold mb-3" style="white-space: pre-wrap;">${header}</div>
+<pre class="print-preview">
+${header}
 
-                <div class="mb-2">
-                    Op: Venda           Data: ${formatDateTime(data.data)}<br>
-                    Seq: ${data.numero || data.id_legado}
-                </div>
+Op: Venda           Data: ${formatDateTime(data.data)}
+Seq: ${data.numero || data.id_legado || 'N/A'}
+---------------------------------------------------------------
+Nome: ${data.customer?.name?.toUpperCase() || data.cliente?.nome?.toUpperCase() || 'CLIENTE'}
+CPF/CNPJ: ${data.customer?.document || data.cliente?.documento || 'N/A'}
 
-                <div class="border-dashed mb-2"></div>
+*** DETALHAR PAGAMENTO ***
+TIPO      VENCIMENTO           VALOR R$
+---------------------------------------------------------------
+${parcelasBlock}
+---------------------------------------------------------------
+                             Valor R$: ${PrintHandler.formatCurrency(total)}
 
-                <div class="mb-2">
-                    Nome: ${data.cliente?.nome?.toUpperCase() || 'N/A'}<br>
-                    CPF/CNPJ: ${data.cliente?.documento || 'N/A'}
-                </div>
+${footer}
 
-                <div class="text-center fw-bold mb-2">*** DETALHAR PAGAMENTO ***</div>
-                
-                <table style="width: 100%; margin-bottom: 10px;">
-                    <tr>
-                        <td align="left">TIPO</td>
-                        <td align="center">VENCIMENTO</td>
-                        <td align="right">VALOR R$</td>
-                    </tr>
-                    <tr>
-                        <td align="left">à vista</td>
-                        <td align="center">${formatDateTime(data.data)}</td>
-                        <td align="right">${(data.total || 0).toFixed(2)}</td>
-                    </tr>
-                </table>
 
-                <div class="text-end fw-bold mb-3" style="font-size: 16px;">
-                    Valor R$: ${(data.total || 0).toFixed(2)}
-                </div>
-
-                <div class="text-center mb-4" style="font-size: 12px; white-space: pre-wrap;">
-                    ${footer}
-                </div>
-
-                <div class="mt-5 text-center">
-                    _______________________________________<br>
-                    ${data.cliente?.nome?.toUpperCase() || 'CLIENTE'}
-                </div>
-            </div>
+_______________________________________
+${data.customer?.name?.toUpperCase() || data.cliente?.nome?.toUpperCase() || 'CLIENTE'}
+</pre>
         `;
     }
 };

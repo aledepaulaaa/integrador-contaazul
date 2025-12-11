@@ -274,57 +274,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handlePrinting(content) {
         const printWindow = window.open('', '_blank');
-        // Estilos CSS
         const style = `
             <style>
                 body { 
-                    font-family: 'Arial', sans-serif; /* Fonte mais limpa que Courier */
-                    font-size: 12px;
+                    /* Courier New é essencial para o alinhamento das colunas com espaços */
+                    font-family: 'Courier New', monospace; 
+                    font-size: 17px; 
+                    font-weight: bold;
                     margin: 0; 
-                    padding: 10px;
+                    padding: 5px;
                     color: #000;
+                    background-color: #fff;
                 }
-                .print-container { width: 100%; max-width: 100%; }
                 
-                /* Utilitários */
-                .text-center { text-align: center; }
-                .text-right { text-align: right; }
-                .text-left { text-align: left; }
-                .mt-2 { margin-top: 10px; }
-                .mt-4 { margin-top: 20px; }
-                .mb-1 { margin-bottom: 5px; }
-                .small { font-size: 10px; }
-                
-                /* Caixas e Bordas */
-                .header-box { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
-                .section-box { border: 1px solid #000; padding: 5px; }
-                .box-title { font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 3px; }
-                
-                /* Layout Flex do Topo */
-                .row-flex { display: flex; justify-content: space-between; align-items: flex-start; }
-                .company-info { flex-grow: 1; padding: 0 10px; }
-                .sale-info { text-align: right; }
-                .sale-id { font-size: 16px; font-weight: bold; }
-                
-                /* Tabelas */
-                table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-                th { background-color: #f0f0f0; border-bottom: 1px solid #000; font-weight: bold; padding: 4px; }
-                td { padding: 4px; border-bottom: 1px solid #ddd; }
-                
-                .items-table th, .items-table td { font-size: 12px; }
-                .payment-table { width: 60%; } /* Tabela de pagamentos menor */
-                .payment-table th, .payment-table td { font-size: 11px; }
-
-                /* Totais */
-                .total-row td { background-color: #f9f9f9; font-weight: bold; border-top: 2px solid #000; }
-                .net-row td { font-size: 14px; }
-
-                /* Assinatura */
-                .signature-line { border-top: 1px solid #000; width: 60%; margin: 30px auto 5px auto; }
+                /* Garante que o pre respeite as quebras de linha e espaços */
+                .print-preview { 
+                    margin: 0; 
+                    white-space: pre-wrap; 
+                    line-height: 1.2; 
+                    text-align: left; /* Garante alinhamento à esquerda */
+                }
 
                 @media print {
                     body { -webkit-print-color-adjust: exact; }
-                    @page { margin: 5mm; }
+                    @page { margin: 0; size: auto; }
                 }
             </style>
         `;
