@@ -184,7 +184,7 @@ CPF/CNPJ: ${cliDoc}
 END: ${endStr}
 -----------------------------------------------
 ${modalidade}
-${prazo}
+PRAZO EM DIAS: ${prazo}
 ===============================================
 ITEM DESCRIÇÃO
     VALOR UNIT.               SUBTOTAL

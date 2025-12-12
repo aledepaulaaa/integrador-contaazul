@@ -93,6 +93,7 @@ module.exports = {
             }
 
             console.log(`[Backend] Retornando venda ${resultadoFinal.numero} com ${resultadoFinal.itens?.length || 0} itens.`);
+            console.log(resultadoFinal);
 
             return res.json({ ok: true, data: resultadoFinal });
 
