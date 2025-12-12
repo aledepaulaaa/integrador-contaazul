@@ -98,7 +98,7 @@ const PrintHandler = {
         // --- CONFIGURAÇÕES GERAIS ---
         const header = config.header || 'METTA CONTABILIDADE\nSTA BARBARA DO LESTE';
         const footer = config.footer || '';
-        const prazo = config.prazo ? `PRAZO: ${config.prazo}` : '';
+        const prazo = config.prazo ? `PRAZO EM DIAS: ${config.prazo}` : '';
         const modalidade = config.modalidade ? `MODALIDADE: ${config.modalidade}` : '';
         const docNum = data.numero || data.id_legado || '---';
         const dataEmissao = formatDateTime(data.data);
@@ -180,7 +180,7 @@ CPF/CNPJ: ${cliDoc}
 END: ${endStr}
 -----------------------------------------------
 ${modalidade}
-PRAZO EM DIAS: ${prazo}
+${prazo}
 ===============================================
 ITEM DESCRIÇÃO
     VALOR UNIT.               SUBTOTAL
