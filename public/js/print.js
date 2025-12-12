@@ -88,16 +88,14 @@ const PrintHandler = {
     // Formata valor monetário
     formatMoney: (val) => Number(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     
-    // Auxiliares para alinhar texto (colunas)
-    // pad: preenche com espaços à direita (para alinhar a esquerda)
-    // padLeft: preenche com espaços à esquerda (para alinhar valores numéricos a direita)
+    // Auxiliares para alinhar texto
     pad: (str, len) => (str || '').toString().substring(0, len).padEnd(len, ' '),
     padLeft: (str, len) => (str || '').toString().substring(0, len).padStart(len, ' '),
 
     generateCondicionalHTML: function (data, settings = {}) {
         const config = settings || {};
         
-        // --- DADOS CABEÇALHO ---
+        // --- CONFIGURAÇÕES GERAIS ---
         const header = config.header || 'METTA CONTABILIDADE\nSTA BARBARA DO LESTE';
         const footer = config.footer || '';
         const prazo = config.prazo ? `PRAZO: ${config.prazo}` : '';
@@ -105,56 +103,55 @@ const PrintHandler = {
         const docNum = data.numero || data.id_legado || '---';
         const dataEmissao = formatDateTime(data.data);
 
+        // --- TÍTULO PERSONALIZADO (MUDANÇA SOLICITADA) ---
+        const tituloDocumento = `NOTA CONDICIONAL Nº ${docNum}`;
+
         // --- DADOS CLIENTE ---
-        // Tenta pegar de várias propriedades possíveis para garantir
         const cliNome = (data.cliente?.nome || data.customer?.name || 'CLIENTE NÃO IDENTIFICADO').toUpperCase();
-        const cliDoc = data.cliente?.documento || data.cliente?.cpf_cnpj || data.customer?.document || '';
+        const cliDoc = data.cliente?.documento || data.cliente?.cpf_cnpj || '';
         
         const end = data.cliente?.endereco || data.customer?.address || {};
-        // Monta endereço seguro
-        const logradouro = end.logradouro || end.street || '';
-        const numero = end.numero || end.number || '';
-        const bairro = end.bairro || end.neighborhood || '';
-        const cidade = end.cidade || end.city || '';
-        const estado = end.estado || end.state || '';
-        
-        const endStr = `${logradouro}, ${numero} - ${bairro}\n${cidade}-${estado}`;
+        const endStr = `${end.logradouro || ''}, ${end.numero || ''} - ${end.bairro || ''}\n${end.cidade || ''}-${end.estado || ''}`;
 
-        // --- DADOS ITENS (BLINDAGEM CONTRA ERROS) ---
+        // --- DADOS ITENS ---
         let itensTxt = '';
         let listaItens = [];
 
-        // 1. Verifica onde está a lista (pode ser 'itens' ou 'items')
-        // E garante que É UM ARRAY antes de tentar usar
+        // Verifica array de itens
         if (Array.isArray(data.itens)) listaItens = data.itens;
         else if (Array.isArray(data.items)) listaItens = data.items;
 
         if (listaItens.length > 0) {
             itensTxt = listaItens.map(item => {
-                const qtd = (item.quantidade || item.quantity || 1).toString();
-                // Tenta pegar descrição de várias fontes
-                const nome = (item.descricao || item.description || item.item?.nome || 'PRODUTO').toUpperCase();
-                const unit = this.formatMoney(item.valor_unitario || item.value || item.valor);
-                const sub = this.formatMoney(item.valor_total || item.total || (item.quantidade * item.valor_unitario));
+                // 1. CORREÇÃO DO NOME: O log mostrou que vem em 'item.nome'
+                const nome = (item.nome || item.descricao || item.item?.nome || 'PRODUTO').toUpperCase();
                 
-                // FORMATAÇÃO DE 2 LINHAS (ESTILO CUPOM/PDF)
-                // Linha 1: Qtd + Nome
-                // Linha 2: Unitário e Total alinhados
-                // Ex:
-                // 1   CAMISA GOLA POLO
-                //     UNIT: 109,90          TOTAL: 109,90
-                return `${this.pad(qtd, 3)} ${nome}\n` +
-                       `    UNIT: ${this.pad(unit, 10)}    TOTAL: ${this.padLeft(sub, 10)}`;
+                // Dados numéricos
+                const qtdVal = item.quantidade || item.quantity || 1;
+                const unitVal = item.valor || item.valor_unitario || item.value || 0;
+                
+                // 2. CORREÇÃO DO TOTAL 0,00: Calculamos se a API não mandar
+                const totalVal = item.valor_total || item.total || (qtdVal * unitVal);
+
+                // Formatação para string
+                const qtdStr = qtdVal.toString();
+                const unitStr = this.formatMoney(unitVal);
+                const subStr = this.formatMoney(totalVal);
+                
+                // Layout:
+                // 2   PRODUTO 01
+                //     UNIT: 25,00         TOTAL:      50,00
+                return `${this.pad(qtdStr, 3)} ${nome}\n` +
+                       `    UNIT: ${this.pad(unitStr, 10)}    TOTAL: ${this.padLeft(subStr, 10)}`;
             }).join('\n- - - - - - - - - - - - - - - - - - - - - -\n');
         } else {
-            itensTxt = '    DETALHES DOS ITENS NÃO DISPONÍVEIS\n    (Verifique o cadastro ou retorno da API)';
+            itensTxt = '    DETALHES DOS ITENS NÃO DISPONÍVEIS';
         }
 
         // --- DADOS PAGAMENTO ---
         let pagtosTxt = '';
         let parcelas = [];
         
-        // Mesma blindagem para parcelas
         if (Array.isArray(data.parcelas)) parcelas = data.parcelas;
         else if (data.payment && Array.isArray(data.payment.installments)) parcelas = data.payment.installments;
         
@@ -163,7 +160,6 @@ const PrintHandler = {
                 const num = (p.numero || p.number || '1').toString() + 'º';
                 const venc = formatISODate(p.data_vencimento || p.due_date);
                 const val = this.formatMoney(p.valor || p.value);
-                // Ex: 1º   11/01/2026        54,95
                 return `${this.pad(num, 4)} ${this.pad(venc, 12)} ${this.padLeft(val, 12)}`;
             }).join('\n');
         } else {
@@ -176,7 +172,7 @@ const PrintHandler = {
 <pre class="print-preview">
 ${header}
 
-RECIBO / VENDA Nº ${docNum}
+${tituloDocumento}
 DATA: ${dataEmissao}
 -----------------------------------------------
 CLIENTE: ${cliNome}
@@ -208,8 +204,59 @@ Assinatura
     },
 
     generatePromissoriaHTML: function (data, settings = {}) {
-        // Reutiliza a lógica para manter consistência visual
-        // Você pode mudar apenas o título dentro da função se quiser diferenciar
-        return this.generateCondicionalHTML(data, settings);
+        // --- TÍTULO PERSONALIZADO PARA PROMISSÓRIA ---
+        const docNum = data.numero || data.id_legado || '---';
+        const tituloDocumento = `NOTA PROMISSÓRIA Nº ${docNum}`;
+
+        // Reutilizamos a lógica, mas injetando o título correto
+        // Criamos uma cópia do HTML da condicional e substituímos o título manualmente
+        // ou duplicamos a função para controle total. 
+        // Para simplificar e manter seguro, vou replicar a estrutura principal aqui:
+
+        const config = settings || {};
+        const header = config.header || 'METTA CONTABILIDADE\nSTA BARBARA DO LESTE';
+        const footer = config.footer || '';
+        const dataEmissao = formatDateTime(data.data);
+        const cliNome = (data.cliente?.nome || 'CLIENTE').toUpperCase();
+        const cliDoc = data.cliente?.documento || '';
+        const totalFinal = this.formatMoney(data.total);
+
+        // Parcelas
+        let pagtosTxt = '';
+        let parcelas = data.parcelas || (data.payment ? data.payment.installments : []) || [];
+        if (parcelas.length > 0) {
+            pagtosTxt = parcelas.map(p => {
+                const num = (p.numero || '1').toString() + 'º';
+                const venc = formatISODate(p.data_vencimento || p.due_date);
+                const val = this.formatMoney(p.valor || p.value);
+                return `${this.pad(num, 4)} ${this.pad(venc, 12)} ${this.padLeft(val, 12)}`;
+            }).join('\n');
+        } else {
+            pagtosTxt = `À VISTA                    ${totalFinal}`;
+        }
+
+        return `
+<pre class="print-preview">
+${header}
+
+${tituloDocumento}
+DATA: ${dataEmissao}
+-----------------------------------------------
+CLIENTE: ${cliNome}
+CPF/CNPJ: ${cliDoc}
+
+CONDIÇÃO DE PAGAMENTO:
+Nº   VENCIMENTO             VALOR(R$)
+-----------------------------------------------
+${pagtosTxt}
+-----------------------------------------------
+TOTAL . . . . . . . . . . . R$ ${this.padLeft(totalFinal, 10)}
+
+${footer}
+
+_______________________________________
+Assinatura
+</pre>
+        `;
     }
 };
