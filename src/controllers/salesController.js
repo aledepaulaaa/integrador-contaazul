@@ -50,7 +50,6 @@ module.exports = {
     getById: async (req, res) => {
         try {
             const { id } = req.params;
-            console.log(`[Backend] Buscando detalhes da venda ID: ${id}`);
 
             // Rota confirmada pelo seu cURL
             const response = await contaAzul.get(`/venda/${id}`);
@@ -63,7 +62,9 @@ module.exports = {
                 throw new Error('A API retornou dados vazios.');
             }
 
+
             console.log("[Backend] Sucesso. Cliente:", vendaData.cliente?.nome);
+            console.log("[Backend] Dados Venda:", vendaData);
 
             return res.json({ ok: true, data: vendaData });
         } catch (error) {
